@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache" />
 <title>쿠팡 상품 운영 관리</title>
 <style>
   :root {
@@ -18,16 +19,28 @@
 
   .topbar { display:flex; align-items:center; gap:10px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
   .topbar h1 { font-size:17px; font-weight:800; margin:0; letter-spacing:-.02em; }
-  .topbar .r { margin-left:auto; display:flex; gap:8px; }
+  .topbar .r { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .topbar .who { font-size:12px; color:var(--muted); }
   .btn { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:13px; font-weight:600; padding:8px 14px; border-radius:var(--radius-sm); cursor:pointer; text-decoration:none; }
   .btn:hover { border-color:var(--brand); color:var(--brand); }
   .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
   .btn.primary:hover { filter:brightness(1.07); color:#fff; }
-  .btn.danger:hover { border-color:var(--red); color:var(--red); }
+  .btn:disabled { opacity:.55; cursor:default; }
 
   .wrap { max-width:1240px; margin:0 auto; padding:22px 24px 90px; }
   .head h2 { font-size:24px; font-weight:800; letter-spacing:-.03em; margin:2px 0 4px; }
   .head .sub { color:var(--muted); margin:0 0 18px; font-size:13.5px; }
+
+  /* ===== 로그인 ===== */
+  .login-wrap { min-height:calc(100vh - 80px); display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:30px 28px; width:360px; max-width:100%; }
+  .login h2 { margin:0 0 6px; font-size:19px; letter-spacing:-.02em; }
+  .login p { margin:0 0 18px; font-size:13px; color:var(--muted); }
+  .login .err { color:var(--red); font-size:12.5px; margin:8px 0 0; min-height:16px; }
+
+  /* ===== 설정 안내 ===== */
+  .setup { background:#fbeecb; border:1px solid #e8c76a; color:#7a5502; border-radius:var(--radius-sm); padding:12px 16px; font-size:13px; margin-bottom:16px; line-height:1.6; }
+  .setup code { background:rgba(0,0,0,.06); padding:1px 6px; border-radius:5px; font-size:12px; }
 
   /* ===== 운영 현황 ===== */
   .sec-t { font-size:13px; font-weight:700; color:var(--muted); margin:0 0 8px; }
@@ -97,7 +110,7 @@
   .fld { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
   .fld label { font-size:12px; font-weight:700; color:var(--muted); }
   .fld label b { color:var(--red); }
-  .fld input, .fld select, .fld textarea { padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel-2); color:var(--text); font-size:14px; font-family:inherit; }
+  .fld input, .fld select, .fld textarea { padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel-2); color:var(--text); font-size:14px; font-family:inherit; width:100%; }
   .fld input:focus, .fld select:focus, .fld textarea:focus { outline:2px solid var(--brand); outline-offset:-1px; }
   .fld textarea { min-height:56px; resize:vertical; }
   .fld .hint { font-size:11.5px; color:var(--muted); }
@@ -117,25 +130,46 @@
 
   .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#191f28; color:#fff; font-size:13px; font-weight:600; padding:10px 20px; border-radius:var(--pill); opacity:0; transition:opacity .25s; pointer-events:none; z-index:80; }
   .toast.show { opacity:.92; }
-  @media (max-width:720px){ .wrap{padding:16px 12px 90px;} .dcard .num{font-size:28px;} .grid2{grid-template-columns:1fr;} }
+  #loading { padding:60px; text-align:center; color:var(--muted); }
+  .hide { display:none !important; }
+  @media (max-width:720px){ .wrap{padding:16px 12px 90px;} .dcard .num{font-size:28px;} .grid2{grid-template-columns:1fr;} .topbar{flex-wrap:wrap;} }
 </style>
 </head>
 <body>
 <header class="topbar">
   <h1>🛒 쿠팡 상품 운영 관리</h1>
-  <div class="r">
+  <div class="r hide" id="topActions">
+    <span class="who" id="who"></span>
     <button class="btn" id="btnExport" title="전체 데이터를 JSON 파일로 다운로드">💾 백업</button>
-    <button class="btn" id="btnImport" title="백업 JSON 파일로 복원">♻️ 복원</button>
+    <button class="btn" id="btnImport" title="백업 JSON 파일에서 가져오기">♻️ 복원</button>
     <button class="btn primary" id="btnAdd">＋ 상품 추가</button>
+    <button class="btn" id="btnLogout">로그아웃</button>
   </div>
   <input type="file" id="fileImport" accept=".json,application/json" style="display:none" />
 </header>
 
-<div class="wrap">
+<!-- 로그인 (세션 없을 때) -->
+<div class="login-wrap hide" id="loginWrap">
+  <form class="login" id="loginForm">
+    <h2>🔐 로그인</h2>
+    <p>내부 운영 데이터라 로그인해야 볼 수 있습니다.<br/>카탈로그 관리자 계정 그대로 사용.</p>
+    <div class="fld"><label>이메일</label><input id="lEmail" type="email" autocomplete="username" required /></div>
+    <div class="fld"><label>비밀번호</label><input id="lPw" type="password" autocomplete="current-password" required /></div>
+    <button class="btn primary" id="lBtn" type="submit" style="width:100%; justify-content:center;">로그인</button>
+    <p class="err" id="lErr"></p>
+  </form>
+</div>
+
+<div id="loading">확인 중…</div>
+
+<!-- 본문 (로그인 후) -->
+<div class="wrap hide" id="app">
   <div class="head">
     <h2>운영 현황</h2>
-    <p class="sub">수정·보강·리뉴얼·결합·분리·가격변경·신고 작업을 상품별로 지정하고 추적합니다. 카드 클릭 = 해당 작업만 필터. 데이터는 이 브라우저에 저장되며 💾 백업으로 파일 보관.</p>
+    <p class="sub">수정·보강·리뉴얼·결합·분리·가격변경·신고 작업을 상품별로 지정하고 추적합니다. 카드 클릭 = 해당 작업만 필터. 데이터는 Supabase DB에 저장되어 어느 기기에서나 동일합니다.</p>
   </div>
+
+  <div id="setupBox"></div>
 
   <div class="dash" id="dash"></div>
 
@@ -207,16 +241,20 @@
 <div id="pop"></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
 // ─────────────────────────────────────────────────────────────
-//  데이터: 이 브라우저 localStorage 에 저장 (키: coupangOpsProducts)
-//  백업/복원 = JSON 파일. 서버·DB 없음(완전 독립 정적 사이트).
+//  데이터: Supabase `ops_products` 테이블 (카탈로그와 같은 프로젝트, 별도 테이블)
+//  읽기·쓰기 모두 로그인 필요(RLS). 테이블 생성: supabase_ops_products.sql 1회 실행.
+//  anon(publishable) 키는 공개돼도 안전 — RLS 가 비로그인 접근을 차단.
 // ─────────────────────────────────────────────────────────────
-const LS_KEY = "coupangOpsProducts";
-let DATA = [];
-try { DATA = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch(e) { DATA = []; }
-const persist = () => localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+const SUPA_URL = "https://tnuzqrqxptxrfozzjjek.supabase.co";
+const SUPA_KEY = "sb_publishable_BSLM7lCKgpZWRtweb687og_F1RqFAYN";
+const TABLE = "ops_products";
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let DATA = [], session = null;
 
 const FLAGS = [
   ["수정","✏️","var(--red)"], ["보강","✨","var(--orange)"], ["리뉴얼","🔄","var(--blue)"],
@@ -229,16 +267,26 @@ const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">
 const num = v => { const n = parseFloat(String(v??"").replace(/[^\d.]/g,"")); return isFinite(n)&&n>0 ? n : 0; };
 const won = n => "₩" + Math.round(n).toLocaleString();
 const mgnOf = p => { const a=num(p.price), b=num(p.supply); return (a>0&&b>0&&b<a) ? (a-b)/a*100 : null; };
+const flagsOf = p => String(p.flags||"").split(",").map(s=>s.trim()).filter(Boolean);
 
 let toastT;
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
+function dberr(where, error){ console.error(where, error); alert(where+" 실패: "+(error.message||error)); }
+
+// ── 화면 전환 ──
+function show(view){ // "loading" | "login" | "app"
+  document.getElementById("loading").classList.toggle("hide", view!=="loading");
+  document.getElementById("loginWrap").classList.toggle("hide", view!=="login");
+  document.getElementById("app").classList.toggle("hide", view!=="app");
+  document.getElementById("topActions").classList.toggle("hide", view!=="app");
+}
 
 // ── 대시보드 ──
 const CARDS = [
-  { lbl:"수정 요청",    cap:"쿠팡 반려 / 수정 요청 대기", cls:"n-red",    tab:"수정",    has:p=>(p.flags||[]).includes("수정") },
-  { lbl:"결합 필요",    cap:"분리 노출 중인 동일 상품",   cls:"n-orange", tab:"결합",    has:p=>(p.flags||[]).includes("결합") },
-  { lbl:"보강 / 리뉴얼", cap:"콘텐츠 개선 대기",          cls:"n-blue",   tab:"improve", has:p=>(p.flags||[]).some(f=>f==="보강"||f==="리뉴얼") },
-  { lbl:"이슈 감지",    cap:"편승 판매자 신고 대기",      cls:"n-green",  tab:"신고",    has:p=>(p.flags||[]).includes("신고") },
+  { lbl:"수정 요청",    cap:"쿠팡 반려 / 수정 요청 대기", cls:"n-red",    tab:"수정",    has:p=>flagsOf(p).includes("수정") },
+  { lbl:"결합 필요",    cap:"분리 노출 중인 동일 상품",   cls:"n-orange", tab:"결합",    has:p=>flagsOf(p).includes("결합") },
+  { lbl:"보강 / 리뉴얼", cap:"콘텐츠 개선 대기",          cls:"n-blue",   tab:"improve", has:p=>flagsOf(p).some(f=>f==="보강"||f==="리뉴얼") },
+  { lbl:"이슈 감지",    cap:"편승 판매자 신고 대기",      cls:"n-green",  tab:"신고",    has:p=>flagsOf(p).includes("신고") },
 ];
 function renderDash(){
   document.getElementById("dash").innerHTML = CARDS.map(c=>{
@@ -257,15 +305,15 @@ function renderTabs(){
 }
 function matchTab(p){
   if (tab==="all") return true;
-  if (tab==="improve") return (p.flags||[]).some(f=>f==="보강"||f==="리뉴얼");
-  return (p.flags||[]).includes(tab);
+  if (tab==="improve") return flagsOf(p).some(f=>f==="보강"||f==="리뉴얼");
+  return flagsOf(p).includes(tab);
 }
 function filtered(){
   const q = document.getElementById("search").value.trim().toLowerCase();
   let rows = DATA.filter(p=> matchTab(p) &&
     (!q || String(p.sku||"").toLowerCase().includes(q) || String(p.name||"").toLowerCase().includes(q) || String(p.barcode||"").includes(q)));
   const s = document.getElementById("sortSel").value;
-  if (s==="work")  rows = rows.slice().sort((a,b)=>(b.flags||[]).length-(a.flags||[]).length);
+  if (s==="work")  rows = rows.slice().sort((a,b)=>flagsOf(b).length-flagsOf(a).length);
   if (s==="mgn")   rows = rows.slice().sort((a,b)=>(mgnOf(a)??999)-(mgnOf(b)??999));
   if (s==="price") rows = rows.slice().sort((a,b)=>num(b.price)-num(a.price));
   if (s==="name")  rows = rows.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"ko"));
@@ -278,11 +326,11 @@ function renderTable(){
   const rows = filtered();
   document.getElementById("cnt").textContent = DATA.length ? `${rows.length}건${tab!=="all"||document.getElementById("search").value?` / 전체 ${DATA.length}건`:""}` : "";
   document.getElementById("empty").style.display = DATA.length ? "none" : "";
-  document.querySelector("table").style.display = DATA.length ? "" : "none";
+  document.querySelector("#tblwrap table").style.display = DATA.length ? "" : "none";
   document.getElementById("tbody").innerHTML = rows.map(p=>{
     const m = mgnOf(p);
     const mgn = m===null ? `<span class="dash-c">—</span>` : `<span class="${m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo")}">${m.toFixed(1)}%</span>`;
-    const badges = (p.flags||[]).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(f)}</span>`).join("");
+    const badges = flagsOf(p).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(f)}</span>`).join("");
     return `<tr data-id="${p.id}">
       <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
       <td class="skuid">${esc(p.sku||"")}</td>
@@ -312,6 +360,24 @@ function renderBulk(){
 }
 function render(){ renderDash(); renderTabs(); renderTable(); }
 
+// ── DB 로드 ──
+async function loadData(){
+  const { data, error } = await sb.from(TABLE).select("*").order("id");
+  const box = document.getElementById("setupBox");
+  if (error){
+    DATA = [];
+    if (/does not exist|relation|schema cache/i.test(error.message||"")){
+      box.innerHTML = `<div class="setup">⚠️ <b>ops_products 테이블이 아직 없습니다.</b><br/>
+        Supabase 대시보드 → SQL Editor 에서 <code>supabase_ops_products.sql</code>
+        (<a href="https://github.com/heyjyu/coupang-ops/blob/main/supabase_ops_products.sql" target="_blank" rel="noopener">파일 보기</a>)
+        내용을 붙여넣고 Run 하면 바로 사용 가능합니다. 실행 후 새로고침.</div>`;
+    } else {
+      box.innerHTML = `<div class="setup">⚠️ 불러오기 실패: ${esc(error.message)}</div>`;
+    }
+  } else { DATA = data||[]; box.innerHTML = ""; }
+  render();
+}
+
 // ── 상품 추가/수정 모달 ──
 let editId = null;
 function openModal(id){
@@ -334,7 +400,7 @@ function updMgn(){
 }
 fPrice.addEventListener("input", updMgn);
 fSupply.addEventListener("input", updMgn);
-document.getElementById("mSave").addEventListener("click", ()=>{
+document.getElementById("mSave").addEventListener("click", async ()=>{
   const name = fName.value.trim();
   if (!name){ fName.focus(); toast("SKU 명은 필수입니다"); return; }
   let sku = fSku.value.trim();
@@ -344,11 +410,23 @@ document.getElementById("mSave").addEventListener("click", ()=>{
   }
   const dup = DATA.find(p=>p.sku===sku && p.id!==editId);
   if (dup && !confirm(`SKU ID "${sku}" 가 이미 있습니다 (${dup.name}). 그래도 저장할까요?`)) return;
-  const vals = { sku, name, barcode:fBarcode.value.trim(), price:num(fPrice.value)||"", supply:num(fSupply.value)||"",
-                 status:fStatus.value, reviews:num(fReviews.value)||"", note:fNote.value.trim() };
-  if (editId){ Object.assign(DATA.find(p=>p.id===editId), vals); toast("수정되었습니다"); }
-  else { DATA.push({ id: Date.now()+"_"+Math.random().toString(36).slice(2,7), flags:[], ...vals }); toast("상품이 추가되었습니다"); }
-  persist(); closeModal(); render();
+  const vals = { sku, name, barcode:fBarcode.value.trim()||null, price:num(fPrice.value)||null, supply:num(fSupply.value)||null,
+                 status:fStatus.value, reviews:num(fReviews.value)||null, note:fNote.value.trim()||null };
+  const btn = document.getElementById("mSave"); btn.disabled = true;
+  if (editId){
+    const { error } = await sb.from(TABLE).update(vals).eq("id", editId);
+    btn.disabled = false;
+    if (error) return dberr("수정", error);
+    Object.assign(DATA.find(p=>p.id===editId), vals);
+    toast("수정되었습니다");
+  } else {
+    const { data, error } = await sb.from(TABLE).insert({ ...vals, flags:"" }).select().single();
+    btn.disabled = false;
+    if (error) return dberr("추가", error);
+    DATA.push(data);
+    toast("상품이 추가되었습니다");
+  }
+  closeModal(); render();
 });
 document.getElementById("btnAdd").addEventListener("click", ()=>openModal());
 document.getElementById("ovl").addEventListener("click", e=>{ if (e.target.id==="ovl") closeModal(); });
@@ -360,7 +438,7 @@ let popIds = [];
 function openPop(ids, anchor){
   popIds = ids;
   const first = DATA.find(p=>p.id===ids[0]);
-  const cur = ids.length===1 ? (first.flags||[]) : [];
+  const cur = ids.length===1 ? flagsOf(first) : [];
   const title = ids.length===1 ? first.name : `선택한 ${ids.length}개 상품`;
   pop.innerHTML = `<h4>${esc(title)} — 작업 지정</h4>
     <div class="flags">${FLAGS.map(([f,ic,c])=>`<button data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${f}</button>`).join("")}</div>
@@ -372,19 +450,18 @@ function openPop(ids, anchor){
   let y = r.bottom+6; if (y+h > innerHeight-10) y = Math.max(10, r.top-h-6);
   pop.style.left=x+"px"; pop.style.top=y+"px";
 }
-pop.addEventListener("click", e=>{
+pop.addEventListener("click", async e=>{
   const f = e.target.closest("[data-f]");
   if (f){ f.classList.toggle("on"); return; }
   const act = e.target.closest("[data-act]"); if (!act) return;
   if (act.dataset.act==="save"){
-    const flags = [...pop.querySelectorAll("[data-f].on")].map(b=>b.dataset.f);
-    popIds.forEach(id=>{
-      const p = DATA.find(x=>x.id===id); if (!p) return;
-      p.flags = flags.slice();
-      const nt = pop.querySelector("#popNote");
-      if (nt) p.note = nt.value.trim();
-    });
-    persist(); render(); toast("저장되었습니다");
+    const flags = [...pop.querySelectorAll("[data-f].on")].map(b=>b.dataset.f).join(",");
+    const nt = pop.querySelector("#popNote");
+    const vals = nt ? { flags, note: nt.value.trim()||null } : { flags };
+    const { error } = await sb.from(TABLE).update(vals).in("id", popIds);
+    if (error) return dberr("작업 저장", error);
+    popIds.forEach(id=>{ const p=DATA.find(x=>x.id===id); if (p) Object.assign(p, vals); });
+    render(); toast("저장되었습니다");
   }
   pop.style.display = "none";
 });
@@ -393,28 +470,33 @@ document.addEventListener("click", e=>{
 });
 
 // ── 표 이벤트 (위임) ──
-document.getElementById("tbody").addEventListener("click", e=>{
+document.getElementById("tbody").addEventListener("click", async e=>{
   const sel = e.target.closest("[data-sel]");
-  if (sel){ sel.checked ? SEL.add(sel.dataset.sel) : SEL.delete(sel.dataset.sel); renderBulk();
+  if (sel){ sel.checked ? SEL.add(Number(sel.dataset.sel)) : SEL.delete(Number(sel.dataset.sel)); renderBulk();
     document.getElementById("ckAll").checked = filtered().every(p=>SEL.has(p.id)); return; }
-  const pb = e.target.closest("[data-pop]");  if (pb){ openPop([pb.dataset.pop], pb); return; }
-  const ed = e.target.closest("[data-edit]"); if (ed){ openModal(ed.dataset.edit); return; }
+  const pb = e.target.closest("[data-pop]");  if (pb){ openPop([Number(pb.dataset.pop)], pb); return; }
+  const ed = e.target.closest("[data-edit]"); if (ed){ openModal(Number(ed.dataset.edit)); return; }
   const dl = e.target.closest("[data-del]");
   if (dl){
-    const p = DATA.find(x=>x.id===dl.dataset.del);
-    if (confirm(`"${p.name}" 상품을 삭제할까요?`)){ DATA = DATA.filter(x=>x.id!==p.id); SEL.delete(p.id); persist(); render(); toast("삭제되었습니다"); }
+    const p = DATA.find(x=>x.id===Number(dl.dataset.del));
+    if (confirm(`"${p.name}" 상품을 삭제할까요?`)){
+      const { error } = await sb.from(TABLE).delete().eq("id", p.id);
+      if (error) return dberr("삭제", error);
+      DATA = DATA.filter(x=>x.id!==p.id); SEL.delete(p.id); render(); toast("삭제되었습니다");
+    }
   }
 });
 document.getElementById("ckAll").addEventListener("change", e=>{
-  const rows = filtered();
-  rows.forEach(p=> e.target.checked ? SEL.add(p.id) : SEL.delete(p.id));
+  filtered().forEach(p=> e.target.checked ? SEL.add(p.id) : SEL.delete(p.id));
   renderTable();
 });
 document.getElementById("bulkFlag").addEventListener("click", e=>openPop([...SEL], e.target));
-document.getElementById("bulkDel").addEventListener("click", ()=>{
+document.getElementById("bulkDel").addEventListener("click", async ()=>{
   if (!SEL.size) return;
   if (confirm(`선택한 ${SEL.size}개 상품을 삭제할까요?`)){
-    DATA = DATA.filter(p=>!SEL.has(p.id)); SEL.clear(); persist(); render(); toast("삭제되었습니다");
+    const { error } = await sb.from(TABLE).delete().in("id", [...SEL]);
+    if (error) return dberr("삭제", error);
+    DATA = DATA.filter(p=>!SEL.has(p.id)); SEL.clear(); render(); toast("삭제되었습니다");
   }
 });
 document.getElementById("dash").addEventListener("click", e=>{
@@ -428,7 +510,7 @@ document.getElementById("tabs").addEventListener("click", e=>{
 document.getElementById("search").addEventListener("input", renderTable);
 document.getElementById("sortSel").addEventListener("change", renderTable);
 
-// ── 백업 / 복원 ──
+// ── 백업 / 복원 (DB ↔ JSON 파일) ──
 document.getElementById("btnExport").addEventListener("click", ()=>{
   const d = new Date(), pad = n=>String(n).padStart(2,"0");
   const stamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
@@ -441,17 +523,46 @@ document.getElementById("btnExport").addEventListener("click", ()=>{
 document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("fileImport").click());
 document.getElementById("fileImport").addEventListener("change", e=>{
   const file = e.target.files[0]; e.target.value=""; if (!file) return;
-  file.text().then(t=>{
+  file.text().then(async t=>{
     const j = JSON.parse(t);
     const items = Array.isArray(j) ? j : (j.products||[]);
-    if (!Array.isArray(items)) throw new Error("형식 오류");
-    if (DATA.length && !confirm(`현재 ${DATA.length}건을 백업 파일의 ${items.length}건으로 교체합니다. 계속할까요?`)) return;
-    DATA = items.map(p=>({ id:p.id||Date.now()+"_"+Math.random().toString(36).slice(2,7), flags:Array.isArray(p.flags)?p.flags:[], ...p }));
-    SEL.clear(); persist(); render(); toast(`${DATA.length}건을 불러왔습니다`);
-  }).catch(()=>alert("복원 실패 — 백업 JSON 파일이 아닙니다."));
+    if (!Array.isArray(items) || !items.length) throw new Error("형식 오류");
+    if (!confirm(`백업 파일의 ${items.length}건을 DB에 추가합니다. (기존 ${DATA.length}건은 그대로 두고 추가만 — 전체 교체가 필요하면 먼저 전체 선택 → 삭제)`)) return;
+    const rows = items.map(p=>({ sku:p.sku||null, name:p.name||"(이름 없음)", barcode:p.barcode||null,
+      price:num(p.price)||null, supply:num(p.supply)||null, status:p.status||"정상",
+      reviews:num(p.reviews)||null, flags:Array.isArray(p.flags)?p.flags.join(","):String(p.flags||""), note:p.note||null }));
+    for (let i=0; i<rows.length; i+=200){
+      const { error } = await sb.from(TABLE).insert(rows.slice(i, i+200));
+      if (error) return dberr("복원", error);
+    }
+    await loadData(); toast(`${rows.length}건을 불러왔습니다`);
+  }).catch(err=>{ if (err) alert("복원 실패 — 백업 JSON 파일이 아닙니다."); });
 });
 
-render();
+// ── 로그인 ──
+document.getElementById("loginForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const btn = document.getElementById("lBtn"), err = document.getElementById("lErr");
+  btn.disabled = true; err.textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: lEmail.value.trim(), password: lPw.value });
+  btn.disabled = false;
+  if (error){ err.textContent = "로그인 실패: " + error.message; return; }
+});
+document.getElementById("btnLogout").addEventListener("click", async ()=>{ await sb.auth.signOut(); });
+
+async function enter(s){
+  session = s;
+  if (!session){ show("login"); return; }
+  document.getElementById("who").textContent = session.user?.email || "";
+  show("app");
+  await loadData();
+}
+(async function init(){
+  show("loading");
+  const { data } = await sb.auth.getSession();
+  await enter(data && data.session);
+  sb.auth.onAuthStateChange((_e, s)=>{ if ((s&&s.access_token) !== (session&&session.access_token)) enter(s); });
+})();
 </script>
 </body>
 </html>
