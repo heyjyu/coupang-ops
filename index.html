@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>쿠팡 상품 운영 관리</title>
+<style>
+  :root {
+    --bg:#f4f5f7; --panel:#ffffff; --panel-2:#f7f8fa; --border:#e4e6ea; --border-soft:#eef0f3;
+    --text:#191f28; --muted:#8b95a1; --brand:#3182f6; --brand-soft:#eef5fe;
+    --red:#e0352b; --orange:#e8850c; --blue:#2f6fed; --green:#15924a; --purple:#7c4dff; --gold:#0a8f5b; --brown:#b07403;
+    --radius:14px; --radius-sm:10px; --pill:999px;
+    --shadow:0 1px 3px rgba(25,31,40,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR",-apple-system,sans-serif; font-size:14px; }
+  button { font-family:inherit; }
+
+  .topbar { display:flex; align-items:center; gap:10px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+  .topbar h1 { font-size:17px; font-weight:800; margin:0; letter-spacing:-.02em; }
+  .topbar .r { margin-left:auto; display:flex; gap:8px; }
+  .btn { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:13px; font-weight:600; padding:8px 14px; border-radius:var(--radius-sm); cursor:pointer; text-decoration:none; }
+  .btn:hover { border-color:var(--brand); color:var(--brand); }
+  .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .btn.primary:hover { filter:brightness(1.07); color:#fff; }
+  .btn.danger:hover { border-color:var(--red); color:var(--red); }
+
+  .wrap { max-width:1240px; margin:0 auto; padding:22px 24px 90px; }
+  .head h2 { font-size:24px; font-weight:800; letter-spacing:-.03em; margin:2px 0 4px; }
+  .head .sub { color:var(--muted); margin:0 0 18px; font-size:13.5px; }
+
+  /* ===== 운영 현황 ===== */
+  .sec-t { font-size:13px; font-weight:700; color:var(--muted); margin:0 0 8px; }
+  .dash { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:22px; }
+  .dcard { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; box-shadow:var(--shadow); cursor:pointer; transition:border-color .15s; }
+  .dcard:hover, .dcard.on { border-color:var(--brand); }
+  .dcard .lbl { font-size:13px; font-weight:700; color:var(--muted); }
+  .dcard .num { font-size:34px; font-weight:800; letter-spacing:-.03em; line-height:1.25; margin:2px 0; }
+  .dcard .cap { font-size:12px; color:var(--muted); }
+  .n-red{color:var(--red);} .n-orange{color:var(--orange);} .n-blue{color:var(--blue);} .n-green{color:var(--green);}
+
+  /* ===== 툴바 ===== */
+  .tools { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin-bottom:12px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; }
+  .tabs button { border:1px solid var(--border); background:var(--panel); color:var(--muted); padding:7px 14px; border-radius:var(--pill); cursor:pointer; font-size:13px; font-weight:600; }
+  .tabs button.on { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .tools input[type=search], .tools select { padding:9px 13px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel); color:var(--text); font-size:14px; }
+  .tools input[type=search] { min-width:210px; flex:1; max-width:300px; }
+  .cnt { font-size:13px; color:var(--muted); }
+
+  /* ===== 일괄 선택 바 ===== */
+  .bulk { display:none; align-items:center; gap:10px; background:var(--brand-soft); border:1px solid #bcd7fc; border-radius:var(--radius-sm); padding:8px 14px; margin-bottom:10px; font-size:13px; font-weight:600; color:#1d4fbd; }
+  .bulk.show { display:flex; flex-wrap:wrap; }
+  .bulk button { border:1px solid #bcd7fc; background:#fff; color:#1d4fbd; font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:var(--pill); cursor:pointer; }
+  .bulk button.del { color:var(--red); border-color:#f3c1be; }
+
+  /* ===== 표 ===== */
+  .tblwrap { overflow-x:auto; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; min-width:960px; }
+  th { text-align:left; font-size:12px; color:var(--muted); font-weight:700; padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  td { padding:10px 12px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tbody tr:hover td { background:var(--brand-soft); }
+  td.ck, th.ck { width:34px; text-align:center; }
+  input[type=checkbox] { width:15px; height:15px; accent-color:var(--brand); cursor:pointer; }
+  .skuid { font-family:ui-monospace,SFMono-Regular,monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .nm { font-weight:600; line-height:1.35; }
+  .rev { font-size:11.5px; color:var(--orange); margin-top:1px; }
+  .memo { font-size:11.5px; color:var(--muted); margin-top:2px; max-width:260px; }
+  td.rt { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .dash-c { color:var(--muted); }
+  .mgn-hi{color:var(--green);font-weight:700;} .mgn-mid{color:var(--brown);font-weight:700;} .mgn-lo{color:var(--red);font-weight:700;}
+
+  .stchip { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 10px; border-radius:var(--pill); white-space:nowrap; }
+  .st-정상{background:#dcf3e4;color:#15924a;} .st-품절{background:#fbeecb;color:#b07403;}
+  .st-판매중지{background:#fde3e1;color:#c22a21;} .st-승인대기{background:#dbe7fe;color:#2563eb;}
+
+  .fbadges { display:flex; flex-wrap:wrap; gap:4px; max-width:240px; }
+  .fb { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:var(--pill); border:1px solid var(--fc); color:var(--fc); background:color-mix(in srgb, var(--fc) 9%, transparent); white-space:nowrap; }
+  .rowbtns { display:flex; gap:5px; white-space:nowrap; }
+  .rowbtns button { border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:12px; font-weight:600; padding:5px 10px; border-radius:var(--pill); cursor:pointer; }
+  .rowbtns button:hover { border-color:var(--brand); color:var(--brand); }
+  .rowbtns button.del:hover { border-color:var(--red); color:var(--red); }
+
+  /* ===== 빈 상태 ===== */
+  .empty { text-align:center; padding:70px 20px; color:var(--muted); }
+  .empty .big { font-size:44px; margin-bottom:10px; }
+  .empty h3 { color:var(--text); font-size:17px; margin:0 0 6px; }
+  .empty p { margin:0 0 18px; font-size:13.5px; }
+
+  /* ===== 모달 (상품 추가/수정) ===== */
+  .ovl { position:fixed; inset:0; background:rgba(25,31,40,.45); z-index:50; display:none; align-items:flex-start; justify-content:center; padding:5vh 16px; overflow-y:auto; }
+  .ovl.show { display:flex; }
+  .modal { background:var(--panel); border-radius:var(--radius); width:520px; max-width:100%; padding:22px; box-shadow:0 18px 50px rgba(0,0,0,.22); }
+  .modal h3 { margin:0 0 16px; font-size:17px; letter-spacing:-.02em; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .fld { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+  .fld label { font-size:12px; font-weight:700; color:var(--muted); }
+  .fld label b { color:var(--red); }
+  .fld input, .fld select, .fld textarea { padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel-2); color:var(--text); font-size:14px; font-family:inherit; }
+  .fld input:focus, .fld select:focus, .fld textarea:focus { outline:2px solid var(--brand); outline-offset:-1px; }
+  .fld textarea { min-height:56px; resize:vertical; }
+  .fld .hint { font-size:11.5px; color:var(--muted); }
+  .m-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
+  #fMgn { font-size:12.5px; font-weight:700; }
+
+  /* ===== 작업 지정 팝오버 ===== */
+  #pop { position:fixed; z-index:60; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 12px 32px rgba(0,0,0,.18); padding:14px; width:290px; display:none; }
+  #pop h4 { margin:0 0 10px; font-size:13px; }
+  #pop .flags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  #pop .flags button { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:5px 10px; border-radius:var(--pill); cursor:pointer; }
+  #pop .flags button.on { border-color:var(--fc); color:var(--fc); background:color-mix(in srgb, var(--fc) 12%, transparent); }
+  #pop textarea { width:100%; min-height:50px; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel-2); font-size:12.5px; font-family:inherit; resize:vertical; }
+  #pop .row { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+  #pop .row button { padding:7px 15px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--panel-2); font-size:13px; font-weight:600; cursor:pointer; }
+  #pop .row button.save { background:var(--brand); border-color:var(--brand); color:#fff; }
+
+  .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#191f28; color:#fff; font-size:13px; font-weight:600; padding:10px 20px; border-radius:var(--pill); opacity:0; transition:opacity .25s; pointer-events:none; z-index:80; }
+  .toast.show { opacity:.92; }
+  @media (max-width:720px){ .wrap{padding:16px 12px 90px;} .dcard .num{font-size:28px;} .grid2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1>🛒 쿠팡 상품 운영 관리</h1>
+  <div class="r">
+    <button class="btn" id="btnExport" title="전체 데이터를 JSON 파일로 다운로드">💾 백업</button>
+    <button class="btn" id="btnImport" title="백업 JSON 파일로 복원">♻️ 복원</button>
+    <button class="btn primary" id="btnAdd">＋ 상품 추가</button>
+  </div>
+  <input type="file" id="fileImport" accept=".json,application/json" style="display:none" />
+</header>
+
+<div class="wrap">
+  <div class="head">
+    <h2>운영 현황</h2>
+    <p class="sub">수정·보강·리뉴얼·결합·분리·가격변경·신고 작업을 상품별로 지정하고 추적합니다. 카드 클릭 = 해당 작업만 필터. 데이터는 이 브라우저에 저장되며 💾 백업으로 파일 보관.</p>
+  </div>
+
+  <div class="dash" id="dash"></div>
+
+  <p class="sec-t">상품 목록</p>
+  <div class="tools">
+    <div class="tabs" id="tabs"></div>
+    <input id="search" type="search" placeholder="SKU ID · 상품명 · 바코드 검색…" autocomplete="off" />
+    <select id="sortSel">
+      <option value="">등록순</option>
+      <option value="work">작업 필요 우선</option>
+      <option value="mgn">여백률 낮은순</option>
+      <option value="price">판매가 높은순</option>
+      <option value="name">이름순</option>
+    </select>
+    <span class="cnt" id="cnt"></span>
+  </div>
+
+  <div class="bulk" id="bulk">
+    <span id="bulkN"></span>
+    <button id="bulkFlag">🏷 작업 지정</button>
+    <button class="del" id="bulkDel">🗑 선택 삭제</button>
+  </div>
+
+  <div class="tblwrap" id="tblwrap">
+    <table>
+      <thead><tr>
+        <th class="ck"><input type="checkbox" id="ckAll" /></th>
+        <th>SKU ID</th><th>SKU 명</th><th>바코드</th><th>판매가</th><th>공급가</th><th>여백률</th><th>상태</th><th>작업 필요</th><th>액션</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">
+      <div class="big">📦</div>
+      <h3>등록된 상품이 없습니다</h3>
+      <p>“＋ 상품 추가”로 첫 상품을 등록하거나, ♻️ 복원으로 백업 파일을 불러오세요.</p>
+      <button class="btn primary" onclick="openModal()">＋ 상품 추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 상품 추가/수정 모달 -->
+<div class="ovl" id="ovl">
+  <div class="modal">
+    <h3 id="mTitle">상품 추가</h3>
+    <div class="grid2">
+      <div class="fld"><label>SKU ID</label><input id="fSku" placeholder="비우면 자동 생성 (예: CSK-240801)" /></div>
+      <div class="fld"><label>바코드</label><input id="fBarcode" placeholder="8801234567890" inputmode="numeric" /></div>
+    </div>
+    <div class="fld"><label>SKU 명 <b>*</b></label><input id="fName" placeholder="갤럭시 워치6 44mm 실리콘 밴드 블랙" /></div>
+    <div class="grid2">
+      <div class="fld"><label>판매가 (원)</label><input id="fPrice" placeholder="12900" inputmode="numeric" /></div>
+      <div class="fld"><label>공급가 (원)</label><input id="fSupply" placeholder="5200" inputmode="numeric" /></div>
+    </div>
+    <div class="grid2">
+      <div class="fld"><label>상태</label>
+        <select id="fStatus"><option>정상</option><option>품절</option><option>판매중지</option><option>승인대기</option></select>
+      </div>
+      <div class="fld"><label>리뷰 수</label><input id="fReviews" placeholder="0" inputmode="numeric" /></div>
+    </div>
+    <div class="fld"><label>메모</label><textarea id="fNote" placeholder="운영 메모 (선택)"></textarea>
+      <span class="hint">여백률: <span id="fMgn">—</span> (판매가·공급가 입력 시 자동 계산)</span></div>
+    <div class="m-actions">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" id="mSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="pop"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+// ─────────────────────────────────────────────────────────────
+//  데이터: 이 브라우저 localStorage 에 저장 (키: coupangOpsProducts)
+//  백업/복원 = JSON 파일. 서버·DB 없음(완전 독립 정적 사이트).
+// ─────────────────────────────────────────────────────────────
+const LS_KEY = "coupangOpsProducts";
+let DATA = [];
+try { DATA = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch(e) { DATA = []; }
+const persist = () => localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+
+const FLAGS = [
+  ["수정","✏️","var(--red)"], ["보강","✨","var(--orange)"], ["리뉴얼","🔄","var(--blue)"],
+  ["결합","🔗","var(--purple)"], ["분리","✂️","var(--brown)"], ["가격변경","💰","var(--gold)"], ["신고","🚨","var(--red)"],
+];
+const FC = Object.fromEntries(FLAGS.map(f=>[f[0],f[2]]));
+const FI = Object.fromEntries(FLAGS.map(f=>[f[0],f[1]]));
+
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = v => { const n = parseFloat(String(v??"").replace(/[^\d.]/g,"")); return isFinite(n)&&n>0 ? n : 0; };
+const won = n => "₩" + Math.round(n).toLocaleString();
+const mgnOf = p => { const a=num(p.price), b=num(p.supply); return (a>0&&b>0&&b<a) ? (a-b)/a*100 : null; };
+
+let toastT;
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
+
+// ── 대시보드 ──
+const CARDS = [
+  { lbl:"수정 요청",    cap:"쿠팡 반려 / 수정 요청 대기", cls:"n-red",    tab:"수정",    has:p=>(p.flags||[]).includes("수정") },
+  { lbl:"결합 필요",    cap:"분리 노출 중인 동일 상품",   cls:"n-orange", tab:"결합",    has:p=>(p.flags||[]).includes("결합") },
+  { lbl:"보강 / 리뉴얼", cap:"콘텐츠 개선 대기",          cls:"n-blue",   tab:"improve", has:p=>(p.flags||[]).some(f=>f==="보강"||f==="리뉴얼") },
+  { lbl:"이슈 감지",    cap:"편승 판매자 신고 대기",      cls:"n-green",  tab:"신고",    has:p=>(p.flags||[]).includes("신고") },
+];
+function renderDash(){
+  document.getElementById("dash").innerHTML = CARDS.map(c=>{
+    const n = DATA.filter(c.has).length;
+    const numCls = (c.tab==="신고" && n>0) ? "n-red" : c.cls;
+    return `<div class="dcard${tab===c.tab?" on":""}" data-tab="${c.tab}">
+      <div class="lbl">${c.lbl}</div><div class="num ${numCls}">${n}</div><div class="cap">${c.cap}</div></div>`;
+  }).join("");
+}
+
+// ── 탭 / 필터 / 정렬 ──
+let tab = "all";
+function renderTabs(){
+  const t = [["all","전체"]].concat(FLAGS.map(f=>[f[0], f[1]+" "+f[0]]));
+  document.getElementById("tabs").innerHTML = t.map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
+}
+function matchTab(p){
+  if (tab==="all") return true;
+  if (tab==="improve") return (p.flags||[]).some(f=>f==="보강"||f==="리뉴얼");
+  return (p.flags||[]).includes(tab);
+}
+function filtered(){
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  let rows = DATA.filter(p=> matchTab(p) &&
+    (!q || String(p.sku||"").toLowerCase().includes(q) || String(p.name||"").toLowerCase().includes(q) || String(p.barcode||"").includes(q)));
+  const s = document.getElementById("sortSel").value;
+  if (s==="work")  rows = rows.slice().sort((a,b)=>(b.flags||[]).length-(a.flags||[]).length);
+  if (s==="mgn")   rows = rows.slice().sort((a,b)=>(mgnOf(a)??999)-(mgnOf(b)??999));
+  if (s==="price") rows = rows.slice().sort((a,b)=>num(b.price)-num(a.price));
+  if (s==="name")  rows = rows.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"ko"));
+  return rows;
+}
+
+// ── 표 ──
+const SEL = new Set();
+function renderTable(){
+  const rows = filtered();
+  document.getElementById("cnt").textContent = DATA.length ? `${rows.length}건${tab!=="all"||document.getElementById("search").value?` / 전체 ${DATA.length}건`:""}` : "";
+  document.getElementById("empty").style.display = DATA.length ? "none" : "";
+  document.querySelector("table").style.display = DATA.length ? "" : "none";
+  document.getElementById("tbody").innerHTML = rows.map(p=>{
+    const m = mgnOf(p);
+    const mgn = m===null ? `<span class="dash-c">—</span>` : `<span class="${m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo")}">${m.toFixed(1)}%</span>`;
+    const badges = (p.flags||[]).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(f)}</span>`).join("");
+    return `<tr data-id="${p.id}">
+      <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
+      <td class="skuid">${esc(p.sku||"")}</td>
+      <td><div class="nm">${esc(p.name||"(이름 없음)")}</div>
+        ${num(p.reviews)?`<div class="rev">⭐ ${num(p.reviews).toLocaleString()}개 리뷰</div>`:""}
+        ${p.note?`<div class="memo">📝 ${esc(p.note)}</div>`:""}</td>
+      <td class="rt">${esc(p.barcode||"") || '<span class="dash-c">—</span>'}</td>
+      <td class="rt">${num(p.price)?won(num(p.price)):'<span class="dash-c">—</span>'}</td>
+      <td class="rt">${num(p.supply)?won(num(p.supply)):'<span class="dash-c">—</span>'}</td>
+      <td class="rt">${mgn}</td>
+      <td><span class="stchip st-${esc(p.status||"정상")}">${esc(p.status||"정상")}</span></td>
+      <td><div class="fbadges">${badges||'<span class="dash-c">—</span>'}</div></td>
+      <td><div class="rowbtns">
+        <button data-pop="${p.id}">🏷 작업</button>
+        <button data-edit="${p.id}">✏️ 수정</button>
+        <button class="del" data-del="${p.id}">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+  document.getElementById("ckAll").checked = rows.length>0 && rows.every(p=>SEL.has(p.id));
+  renderBulk();
+}
+function renderBulk(){
+  const b = document.getElementById("bulk");
+  b.classList.toggle("show", SEL.size>0);
+  document.getElementById("bulkN").textContent = `${SEL.size}개 선택됨`;
+}
+function render(){ renderDash(); renderTabs(); renderTable(); }
+
+// ── 상품 추가/수정 모달 ──
+let editId = null;
+function openModal(id){
+  editId = id || null;
+  const p = id ? DATA.find(x=>x.id===id) : {};
+  document.getElementById("mTitle").textContent = id ? "상품 수정" : "상품 추가";
+  fSku.value=p.sku||""; fBarcode.value=p.barcode||""; fName.value=p.name||"";
+  fPrice.value=p.price||""; fSupply.value=p.supply||""; fStatus.value=p.status||"정상";
+  fReviews.value=p.reviews||""; fNote.value=p.note||"";
+  updMgn();
+  document.getElementById("ovl").classList.add("show");
+  setTimeout(()=>fName.focus(), 50);
+}
+function closeModal(){ document.getElementById("ovl").classList.remove("show"); }
+function updMgn(){
+  const a=num(fPrice.value), b=num(fSupply.value);
+  const el=document.getElementById("fMgn");
+  if (a>0&&b>0&&b<a){ const m=(a-b)/a*100; el.textContent=m.toFixed(1)+"%"; el.className=m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo"); }
+  else { el.textContent="—"; el.className=""; }
+}
+fPrice.addEventListener("input", updMgn);
+fSupply.addEventListener("input", updMgn);
+document.getElementById("mSave").addEventListener("click", ()=>{
+  const name = fName.value.trim();
+  if (!name){ fName.focus(); toast("SKU 명은 필수입니다"); return; }
+  let sku = fSku.value.trim();
+  if (!sku){
+    let n = DATA.length+1;
+    do { sku = "SKU-"+String(n).padStart(3,"0"); n++; } while (DATA.some(p=>p.sku===sku));
+  }
+  const dup = DATA.find(p=>p.sku===sku && p.id!==editId);
+  if (dup && !confirm(`SKU ID "${sku}" 가 이미 있습니다 (${dup.name}). 그래도 저장할까요?`)) return;
+  const vals = { sku, name, barcode:fBarcode.value.trim(), price:num(fPrice.value)||"", supply:num(fSupply.value)||"",
+                 status:fStatus.value, reviews:num(fReviews.value)||"", note:fNote.value.trim() };
+  if (editId){ Object.assign(DATA.find(p=>p.id===editId), vals); toast("수정되었습니다"); }
+  else { DATA.push({ id: Date.now()+"_"+Math.random().toString(36).slice(2,7), flags:[], ...vals }); toast("상품이 추가되었습니다"); }
+  persist(); closeModal(); render();
+});
+document.getElementById("btnAdd").addEventListener("click", ()=>openModal());
+document.getElementById("ovl").addEventListener("click", e=>{ if (e.target.id==="ovl") closeModal(); });
+document.addEventListener("keydown", e=>{ if (e.key==="Escape"){ closeModal(); pop.style.display="none"; } });
+
+// ── 작업 지정 팝오버 (단일/일괄 공용) ──
+const pop = document.getElementById("pop");
+let popIds = [];
+function openPop(ids, anchor){
+  popIds = ids;
+  const first = DATA.find(p=>p.id===ids[0]);
+  const cur = ids.length===1 ? (first.flags||[]) : [];
+  const title = ids.length===1 ? first.name : `선택한 ${ids.length}개 상품`;
+  pop.innerHTML = `<h4>${esc(title)} — 작업 지정</h4>
+    <div class="flags">${FLAGS.map(([f,ic,c])=>`<button data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${f}</button>`).join("")}</div>
+    ${ids.length===1?`<textarea id="popNote" placeholder="운영 메모 (선택)">${esc(first.note||"")}</textarea>`:""}
+    <div class="row"><button data-act="close">닫기</button><button class="save" data-act="save">저장</button></div>`;
+  pop.style.display = "block";
+  const r = anchor.getBoundingClientRect(), w = 290, h = pop.offsetHeight;
+  let x = Math.min(r.right-w, innerWidth-w-10); if (x<10) x=10;
+  let y = r.bottom+6; if (y+h > innerHeight-10) y = Math.max(10, r.top-h-6);
+  pop.style.left=x+"px"; pop.style.top=y+"px";
+}
+pop.addEventListener("click", e=>{
+  const f = e.target.closest("[data-f]");
+  if (f){ f.classList.toggle("on"); return; }
+  const act = e.target.closest("[data-act]"); if (!act) return;
+  if (act.dataset.act==="save"){
+    const flags = [...pop.querySelectorAll("[data-f].on")].map(b=>b.dataset.f);
+    popIds.forEach(id=>{
+      const p = DATA.find(x=>x.id===id); if (!p) return;
+      p.flags = flags.slice();
+      const nt = pop.querySelector("#popNote");
+      if (nt) p.note = nt.value.trim();
+    });
+    persist(); render(); toast("저장되었습니다");
+  }
+  pop.style.display = "none";
+});
+document.addEventListener("click", e=>{
+  if (pop.style.display==="block" && !pop.contains(e.target) && !e.target.closest("[data-pop]") && e.target.id!=="bulkFlag") pop.style.display="none";
+});
+
+// ── 표 이벤트 (위임) ──
+document.getElementById("tbody").addEventListener("click", e=>{
+  const sel = e.target.closest("[data-sel]");
+  if (sel){ sel.checked ? SEL.add(sel.dataset.sel) : SEL.delete(sel.dataset.sel); renderBulk();
+    document.getElementById("ckAll").checked = filtered().every(p=>SEL.has(p.id)); return; }
+  const pb = e.target.closest("[data-pop]");  if (pb){ openPop([pb.dataset.pop], pb); return; }
+  const ed = e.target.closest("[data-edit]"); if (ed){ openModal(ed.dataset.edit); return; }
+  const dl = e.target.closest("[data-del]");
+  if (dl){
+    const p = DATA.find(x=>x.id===dl.dataset.del);
+    if (confirm(`"${p.name}" 상품을 삭제할까요?`)){ DATA = DATA.filter(x=>x.id!==p.id); SEL.delete(p.id); persist(); render(); toast("삭제되었습니다"); }
+  }
+});
+document.getElementById("ckAll").addEventListener("change", e=>{
+  const rows = filtered();
+  rows.forEach(p=> e.target.checked ? SEL.add(p.id) : SEL.delete(p.id));
+  renderTable();
+});
+document.getElementById("bulkFlag").addEventListener("click", e=>openPop([...SEL], e.target));
+document.getElementById("bulkDel").addEventListener("click", ()=>{
+  if (!SEL.size) return;
+  if (confirm(`선택한 ${SEL.size}개 상품을 삭제할까요?`)){
+    DATA = DATA.filter(p=>!SEL.has(p.id)); SEL.clear(); persist(); render(); toast("삭제되었습니다");
+  }
+});
+document.getElementById("dash").addEventListener("click", e=>{
+  const c = e.target.closest("[data-tab]"); if (!c) return;
+  tab = (tab===c.dataset.tab) ? "all" : c.dataset.tab; render();
+});
+document.getElementById("tabs").addEventListener("click", e=>{
+  const b = e.target.closest("[data-t]"); if (!b) return;
+  tab = b.dataset.t; render();
+});
+document.getElementById("search").addEventListener("input", renderTable);
+document.getElementById("sortSel").addEventListener("change", renderTable);
+
+// ── 백업 / 복원 ──
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const d = new Date(), pad = n=>String(n).padStart(2,"0");
+  const stamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  const blob = new Blob([JSON.stringify({ app:"coupang-ops", exportedAt:d.toISOString(), products:DATA }, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `쿠팡운영관리_백업_${stamp}.json`; a.click();
+  URL.revokeObjectURL(a.href);
+  toast("백업 파일을 다운로드했습니다");
+});
+document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("fileImport").click());
+document.getElementById("fileImport").addEventListener("change", e=>{
+  const file = e.target.files[0]; e.target.value=""; if (!file) return;
+  file.text().then(t=>{
+    const j = JSON.parse(t);
+    const items = Array.isArray(j) ? j : (j.products||[]);
+    if (!Array.isArray(items)) throw new Error("형식 오류");
+    if (DATA.length && !confirm(`현재 ${DATA.length}건을 백업 파일의 ${items.length}건으로 교체합니다. 계속할까요?`)) return;
+    DATA = items.map(p=>({ id:p.id||Date.now()+"_"+Math.random().toString(36).slice(2,7), flags:Array.isArray(p.flags)?p.flags:[], ...p }));
+    SEL.clear(); persist(); render(); toast(`${DATA.length}건을 불러왔습니다`);
+  }).catch(()=>alert("복원 실패 — 백업 JSON 파일이 아닙니다."));
+});
+
+render();
+</script>
+</body>
+</html>
