@@ -219,9 +219,11 @@
 <div class="ovl" id="ovl">
   <div class="modal">
     <h3 id="mTitle">상품 추가</h3>
-    <div class="fld"><label>쿠팡 상품 URL</label><input id="fUrl" placeholder="https://www.coupang.com/vp/products/…" />
-      <span class="hint">붙여넣으면 SKU ID 자동(CP-상품번호). 상품명·가격까지 한 번에 가져오려면
-      <a class="bm" id="bmLink" href="#">📥 쿠팡→운영관리</a> 를 북마크바에 <b>드래그</b>해 두고, 쿠팡 상품 페이지에서 클릭.</span></div>
+    <div class="fld"><label>📋 쿠팡에서 복사한 것 붙여넣기 (자동 입력)</label>
+      <textarea id="fPaste" rows="1" placeholder="쿠팡 상품 페이지에서 ⌘A→⌘C(전체복사) 하거나 주소(URL)를 복사해서 여기에 붙여넣기" style="min-height:42px"></textarea>
+      <span class="hint">붙여넣는 순간 상품명·판매가·리뷰수·SKU ID·URL을 자동 인식해 아래 칸을 채웁니다. (더 편한 원클릭:
+      <a class="bm" id="bmLink" href="#">📥 쿠팡→운영관리</a> 를 북마크바에 드래그해 두고 쿠팡 페이지에서 클릭)</span></div>
+    <div class="fld"><label>쿠팡 상품 URL</label><input id="fUrl" placeholder="https://www.coupang.com/vp/products/…" /></div>
     <div class="grid2">
       <div class="fld"><label>SKU ID</label><input id="fSku" placeholder="비우면 자동 생성 (예: CSK-240801)" /></div>
       <div class="fld"><label>바코드</label><input id="fBarcode" placeholder="8801234567890" inputmode="numeric" /></div>
@@ -412,6 +414,56 @@ document.getElementById("fFlags").addEventListener("click", e=>{
 fUrl.addEventListener("input", ()=>{
   const m = fUrl.value.match(/products\/(\d+)/);
   if (m && !fSku.value.trim()) fSku.value = "CP-"+m[1];
+});
+
+// ── 📋 붙여넣기 자동 인식: URL·공유텍스트·페이지 전체복사(⌘A⌘C) 무엇이든 파싱 ──
+function parseSmart(t){
+  const out = {};
+  const um = t.match(/https?:\/\/[^\s"'<>]*coupang\.com[^\s"'<>]*/);
+  if (um){
+    out.url = um[0];
+    const pm = out.url.match(/products\/(\d+)/);
+    if (pm) out.sku = "CP-"+pm[1];
+  }
+  const rm = t.match(/([\d,]+)\s*개?\s*(?:상품평|리뷰)/);
+  if (rm) out.reviews = rm[1].replace(/,/g,"");
+  // 가격: "판매가/할인가 12,900원" 우선, 없으면 첫 "N,NNN원"
+  let prm = t.match(/(?:판매가|할인가|쿠팡가)\s*:?\s*([\d,]{3,})\s*원/);
+  if (!prm){ const all = [...t.matchAll(/([\d,]{3,})\s*원/g)]; if (all.length) prm = all[0]; }
+  if (prm){ const v = num(prm[1]); if (v >= 100) out.price = v; }
+  // 상품명 ①: 공유 텍스트("상품명 … https://…") — URL 바로 앞 줄
+  if (um){
+    const before = t.slice(0, um.index).split(/\n/).map(s=>s.trim()).filter(Boolean);
+    const cand = before[before.length-1];
+    if (cand && cand.length >= 8 && !/^https?/.test(cand))
+      out.name = cand.replace(/\s*[-|]\s*쿠팡.*$/,"").trim();
+  }
+  // 상품명 ②: 전체복사 텍스트 — "N개 상품평" 줄 위쪽 근접 줄 중 제목다운 것
+  if (!out.name && rm){
+    const lines = t.split(/\n/).map(s=>s.trim());
+    const idx = lines.findIndex(l=>/개\s*(?:상품평|리뷰)/.test(l));
+    for (let i=idx-1; i>=Math.max(0, idx-8); i--){
+      const l = lines[i];
+      if (l && l.length >= 8 && !/별점|평점|상품평|리뷰|쿠팡홈|로그인|장바구니|검색|카테고리|무료배송|배송비|쿠폰|찜|공유|원$|^[\d,.%\s]+$/.test(l)){
+        out.name = l.replace(/\s*[-|]\s*쿠팡.*$/,"").trim(); break;
+      }
+    }
+  }
+  return out;
+}
+document.getElementById("fPaste").addEventListener("paste", e=>{
+  e.preventDefault();
+  const t = (e.clipboardData || window.clipboardData).getData("text") || "";
+  const r = parseSmart(t);
+  const got = [];
+  if (r.name){ fName.value = r.name; got.push("상품명"); }
+  if (r.price){ fPrice.value = r.price; got.push("판매가"); }
+  if (r.reviews){ fReviews.value = r.reviews; got.push("리뷰수"); }
+  if (r.url){ fUrl.value = r.url; got.push("URL"); }
+  if (r.sku && !fSku.value.trim()){ fSku.value = r.sku; got.push("SKU ID"); }
+  e.target.value = "";
+  updMgn();
+  toast(got.length ? "자동 입력: " + got.join(" · ") : "인식된 정보가 없습니다 — 쿠팡 페이지에서 전체복사(⌘A→⌘C) 후 다시 붙여넣어 보세요");
 });
 function closeModal(){ document.getElementById("ovl").classList.remove("show"); }
 function updMgn(){
