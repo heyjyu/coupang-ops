@@ -79,6 +79,11 @@
   .skuid { font-family:ui-monospace,SFMono-Regular,monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
   .nm { font-weight:600; line-height:1.35; }
   .rev { font-size:11.5px; color:var(--orange); margin-top:1px; }
+  a.cp { font-size:11px; text-decoration:none; color:var(--brand); white-space:nowrap; }
+  .flagpick { display:flex; flex-wrap:wrap; gap:6px; }
+  .flagpick button { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:6px 11px; border-radius:var(--pill); cursor:pointer; }
+  .flagpick button.on { border-color:var(--fc); color:var(--fc); background:color-mix(in srgb, var(--fc) 12%, transparent); }
+  .bm { display:inline-block; padding:2px 8px; border:1px dashed var(--brand); border-radius:var(--pill); color:var(--brand); font-weight:700; text-decoration:none; cursor:grab; }
   .memo { font-size:11.5px; color:var(--muted); margin-top:2px; max-width:260px; }
   td.rt { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .dash-c { color:var(--muted); }
@@ -214,6 +219,9 @@
 <div class="ovl" id="ovl">
   <div class="modal">
     <h3 id="mTitle">상품 추가</h3>
+    <div class="fld"><label>쿠팡 상품 URL</label><input id="fUrl" placeholder="https://www.coupang.com/vp/products/…" />
+      <span class="hint">붙여넣으면 SKU ID 자동(CP-상품번호). 상품명·가격까지 한 번에 가져오려면
+      <a class="bm" id="bmLink" href="#">📥 쿠팡→운영관리</a> 를 북마크바에 <b>드래그</b>해 두고, 쿠팡 상품 페이지에서 클릭.</span></div>
     <div class="grid2">
       <div class="fld"><label>SKU ID</label><input id="fSku" placeholder="비우면 자동 생성 (예: CSK-240801)" /></div>
       <div class="fld"><label>바코드</label><input id="fBarcode" placeholder="8801234567890" inputmode="numeric" /></div>
@@ -229,6 +237,7 @@
       </div>
       <div class="fld"><label>리뷰 수</label><input id="fReviews" placeholder="0" inputmode="numeric" /></div>
     </div>
+    <div class="fld"><label>작업 필요</label><div class="flagpick" id="fFlags"></div></div>
     <div class="fld"><label>메모</label><textarea id="fNote" placeholder="운영 메모 (선택)"></textarea>
       <span class="hint">여백률: <span id="fMgn">—</span> (판매가·공급가 입력 시 자동 계산)</span></div>
     <div class="m-actions">
@@ -334,7 +343,7 @@ function renderTable(){
     return `<tr data-id="${p.id}">
       <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
       <td class="skuid">${esc(p.sku||"")}</td>
-      <td><div class="nm">${esc(p.name||"(이름 없음)")}</div>
+      <td><div class="nm">${esc(p.name||"(이름 없음)")}${p.coupang_url?` <a class="cp" href="${esc(p.coupang_url)}" target="_blank" rel="noopener">쿠팡↗</a>`:""}</div>
         ${num(p.reviews)?`<div class="rev">⭐ ${num(p.reviews).toLocaleString()}개 리뷰</div>`:""}
         ${p.note?`<div class="memo">📝 ${esc(p.note)}</div>`:""}</td>
       <td class="rt">${esc(p.barcode||"") || '<span class="dash-c">—</span>'}</td>
@@ -380,17 +389,30 @@ async function loadData(){
 
 // ── 상품 추가/수정 모달 ──
 let editId = null;
-function openModal(id){
+function renderFlagPick(cur){
+  document.getElementById("fFlags").innerHTML = FLAGS.map(([f,ic,c])=>
+    `<button type="button" data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${f}</button>`).join("");
+}
+function openModal(id, pre){
   editId = id || null;
-  const p = id ? DATA.find(x=>x.id===id) : {};
+  const p = id ? DATA.find(x=>x.id===id) : (pre||{});
   document.getElementById("mTitle").textContent = id ? "상품 수정" : "상품 추가";
-  fSku.value=p.sku||""; fBarcode.value=p.barcode||""; fName.value=p.name||"";
+  fUrl.value=p.coupang_url||p.url||""; fSku.value=p.sku||""; fBarcode.value=p.barcode||""; fName.value=p.name||"";
   fPrice.value=p.price||""; fSupply.value=p.supply||""; fStatus.value=p.status||"정상";
   fReviews.value=p.reviews||""; fNote.value=p.note||"";
+  renderFlagPick(id ? flagsOf(p) : (Array.isArray(p.flags)?p.flags:[]));
   updMgn();
   document.getElementById("ovl").classList.add("show");
   setTimeout(()=>fName.focus(), 50);
 }
+document.getElementById("fFlags").addEventListener("click", e=>{
+  const b = e.target.closest("[data-f]"); if (b) b.classList.toggle("on");
+});
+// URL 붙여넣으면 상품번호로 SKU ID 자동 채움
+fUrl.addEventListener("input", ()=>{
+  const m = fUrl.value.match(/products\/(\d+)/);
+  if (m && !fSku.value.trim()) fSku.value = "CP-"+m[1];
+});
 function closeModal(){ document.getElementById("ovl").classList.remove("show"); }
 function updMgn(){
   const a=num(fPrice.value), b=num(fSupply.value);
@@ -410,22 +432,26 @@ document.getElementById("mSave").addEventListener("click", async ()=>{
   }
   const dup = DATA.find(p=>p.sku===sku && p.id!==editId);
   if (dup && !confirm(`SKU ID "${sku}" 가 이미 있습니다 (${dup.name}). 그래도 저장할까요?`)) return;
+  const flags = [...document.querySelectorAll("#fFlags [data-f].on")].map(b=>b.dataset.f).join(",");
   const vals = { sku, name, barcode:fBarcode.value.trim()||null, price:num(fPrice.value)||null, supply:num(fSupply.value)||null,
-                 status:fStatus.value, reviews:num(fReviews.value)||null, note:fNote.value.trim()||null };
+                 status:fStatus.value, reviews:num(fReviews.value)||null, note:fNote.value.trim()||null,
+                 flags, coupang_url:fUrl.value.trim()||null };
   const btn = document.getElementById("mSave"); btn.disabled = true;
-  if (editId){
-    const { error } = await sb.from(TABLE).update(vals).eq("id", editId);
-    btn.disabled = false;
-    if (error) return dberr("수정", error);
-    Object.assign(DATA.find(p=>p.id===editId), vals);
-    toast("수정되었습니다");
-  } else {
-    const { data, error } = await sb.from(TABLE).insert({ ...vals, flags:"" }).select().single();
-    btn.disabled = false;
-    if (error) return dberr("추가", error);
-    DATA.push(data);
-    toast("상품이 추가되었습니다");
+  // coupang_url 컬럼이 아직 없는 DB(v1 스키마)면 그 필드만 빼고 재시도
+  const run = editId
+    ? v => sb.from(TABLE).update(v).eq("id", editId)
+    : v => sb.from(TABLE).insert(v).select().single();
+  let sent = vals;
+  let { data, error } = await run(sent);
+  if (error && /coupang_url/i.test(error.message||"")){
+    sent = { ...vals }; delete sent.coupang_url;
+    ({ data, error } = await run(sent));
+    if (!error) toast("저장됨 — 쿠팡URL 저장은 supabase_ops_products_v2.sql 실행 후 가능");
   }
+  btn.disabled = false;
+  if (error) return dberr(editId?"수정":"추가", error);
+  if (editId){ Object.assign(DATA.find(p=>p.id===editId), sent); if (sent===vals) toast("수정되었습니다"); }
+  else { DATA.push(data); if (sent===vals) toast("상품이 추가되었습니다"); }
   closeModal(); render();
 });
 document.getElementById("btnAdd").addEventListener("click", ()=>openModal());
@@ -550,12 +576,45 @@ document.getElementById("loginForm").addEventListener("submit", async e=>{
 });
 document.getElementById("btnLogout").addEventListener("click", async ()=>{ await sb.auth.signOut(); });
 
+// ── 북마클릿: 쿠팡 상품 페이지에서 상품명·가격·리뷰수·URL 을 뽑아 이 사이트를 폼 프리필 상태로 연다 ──
+//  (쿠팡은 외부 서버/프록시 요청을 차단하므로, 사용자가 보고 있는 페이지 안에서 직접 추출하는 방식만 확실히 동작)
+const SITE_URL = location.origin + location.pathname;
+const BM_SRC = `(function(){try{
+  var q=function(s){var el=document.querySelector(s);return el?el.textContent.trim():""};
+  var mt=function(p){var el=document.querySelector('meta[property="'+p+'"]');return el?(el.getAttribute('content')||""):""};
+  var name=(mt('og:title')||q('h1.prod-buy-header__title')||q('h1')||document.title).replace(/\\s*[|\\-]\\s*쿠팡.*$/,'').trim();
+  var price=(q('.prod-coupon-price .total-price')||q('.prod-sale-price .total-price')||q('.total-price')||'').replace(/[^0-9]/g,'');
+  var reviews=(q('.prod-buy-header__count')||q('#prod-review-nav-link .count')||q('.count')||'').replace(/[^0-9]/g,'');
+  var u=new URL(location.href),k=new URLSearchParams();
+  ['itemId','vendorItemId'].forEach(function(x){if(u.searchParams.get(x))k.set(x,u.searchParams.get(x))});
+  var m=u.pathname.match(/products\\/(\\d+)/);
+  var d={name:name,price:price,reviews:reviews,sku:m?'CP-'+m[1]:'',url:u.origin+u.pathname+(k.toString()?'?'+k.toString():'')};
+  var b=btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\\+/g,'-').replace(/\\//g,'_');
+  window.open('${SITE_URL}#add='+b,'_blank');
+}catch(e){alert('추출 실패: '+e.message)}})();`;
+document.getElementById("bmLink").href = "javascript:" + encodeURIComponent(BM_SRC);
+document.getElementById("bmLink").addEventListener("click", e=>{
+  e.preventDefault();
+  alert("클릭이 아니라 이 버튼을 브라우저 북마크바로 '드래그'해서 등록하세요.\n그 다음 쿠팡 상품 페이지에서 북마크를 누르면 이 폼이 자동으로 채워져 열립니다.");
+});
+
+// ── #add= 해시 프리필 (북마클릿이 넘겨준 데이터) ──
+let pendingAdd = null;
+if (location.hash.startsWith("#add=")){
+  try {
+    const b = location.hash.slice(5).replace(/-/g,"+").replace(/_/g,"/");
+    pendingAdd = JSON.parse(decodeURIComponent(escape(atob(b))));
+  } catch(e){ console.warn("prefill 해석 실패", e); }
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
 async function enter(s){
   session = s;
   if (!session){ show("login"); return; }
   document.getElementById("who").textContent = session.user?.email || "";
   show("app");
   await loadData();
+  if (pendingAdd){ openModal(null, { ...pendingAdd, coupang_url: pendingAdd.url }); pendingAdd = null; }
 }
 (async function init(){
   show("loading");
