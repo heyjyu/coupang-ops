@@ -58,7 +58,10 @@
   .tabs button { border:1px solid var(--border); background:var(--panel); color:var(--muted); padding:7px 14px; border-radius:var(--pill); cursor:pointer; font-size:13px; font-weight:600; }
   .tabs button.on { background:var(--brand); border-color:var(--brand); color:#fff; }
   .tools input[type=search], .tools select { padding:9px 13px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel); color:var(--text); font-size:14px; }
-  .tools input[type=search] { min-width:210px; flex:1; max-width:300px; }
+  .searchbox { display:flex; gap:6px; flex:1; min-width:210px; max-width:360px; }
+  .searchbox input[type=search] { flex:1; min-width:0; }
+  #btnSearch { flex:none; border:1px solid var(--border); background:var(--panel); color:var(--muted); font-weight:700; font-size:13px; padding:9px 15px; border-radius:var(--radius-sm); cursor:pointer; white-space:nowrap; }
+  #btnSearch:hover { border-color:var(--brand); color:var(--brand); }
   .cnt { font-size:13px; color:var(--muted); }
 
   /* ===== 일괄 선택 바 ===== */
@@ -233,7 +236,10 @@
   <div class="dash" id="dash"></div>
 
   <div class="tools">
-    <input id="search" type="search" placeholder="SKU ID · 상품명 · 바코드 검색…" autocomplete="off" />
+    <div class="searchbox">
+      <input id="search" type="search" placeholder="SKU ID · 상품명 · 바코드 검색…" autocomplete="off" />
+      <button id="btnSearch" title="검색">🔍 검색</button>
+    </div>
     <div class="tabs" id="tabs"></div>
   </div>
 
@@ -869,6 +875,8 @@ document.getElementById("tabs").addEventListener("click", e=>{
   tab = b.dataset.t; render();
 });
 document.getElementById("search").addEventListener("input", renderTable);
+document.getElementById("search").addEventListener("keydown", e=>{ if (e.key==="Enter") renderTable(); });
+document.getElementById("btnSearch").addEventListener("click", renderTable);
 document.getElementById("sortSel").addEventListener("change", renderTable);
 
 // ── 백업 / 복원 (DB ↔ JSON 파일) ──
