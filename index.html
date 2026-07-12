@@ -67,9 +67,58 @@
   .bulk button { border:1px solid #bcd7fc; background:#fff; color:#1d4fbd; font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:var(--pill); cursor:pointer; }
   .bulk button.del { color:var(--red); border-color:#f3c1be; }
 
+  /* ===== 상품 목록 헤더 (제목 + 개수 + 정렬) ===== */
+  .listhead { display:flex; align-items:center; margin:4px 0 10px; }
+  .listhead .lh-t { font-size:15px; font-weight:800; letter-spacing:-.02em; }
+  .listhead .lh-r { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .listhead select { padding:7px 11px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel); color:var(--text); font-size:13px; }
+
   /* ===== 표 ===== */
   .tblwrap { overflow-x:auto; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
-  table { width:100%; border-collapse:collapse; font-size:13.5px; min-width:960px; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; min-width:1040px; }
+
+  /* 섹션 / 그룹 헤더 행 */
+  tr.secrow td { background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:800; padding:8px 14px; border-bottom:1px solid var(--border); }
+  tr.grouprow td { background:#eef2ff; border-bottom:1px solid var(--border); padding:9px 14px; }
+  .ghead { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .ghead .caret { cursor:pointer; color:var(--muted); font-size:11px; width:14px; display:inline-block; user-select:none; }
+  .ghead .gtag { font-size:11px; font-weight:800; padding:2px 9px; border-radius:var(--pill); }
+  .ghead .gname { font-weight:800; font-size:14px; }
+  .ghead .gcount { font-size:12px; color:var(--muted); }
+  .ghead .gedit { cursor:pointer; color:var(--muted); border:none; background:none; font-size:13px; padding:2px; }
+  .ghead .gmanage { margin-left:auto; }
+  .ghead .gmanage button { border:1px solid #b9c8f7; background:#fff; color:#3556c9; font-size:12px; font-weight:700; padding:5px 12px; border-radius:var(--pill); cursor:pointer; }
+
+  /* 즐겨찾기 별 */
+  th.fav, td.fav { width:28px; text-align:center; padding-left:8px; padding-right:2px; }
+  .star { cursor:pointer; font-size:15px; line-height:1; color:#cfd4db; user-select:none; }
+  .star.on { color:#f5b301; }
+
+  /* 작업번호 / 타입 / PID 배지 */
+  .wno { font-family:ui-monospace,SFMono-Regular,monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:var(--pill); white-space:nowrap; }
+  .tag-single { background:#eef0f3; color:#6b7280; }
+  .tag-group  { background:#e2e9ff; color:#4b6ef5; }
+  .pidtag { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:var(--pill); background:color-mix(in srgb, var(--gc,#8b95a1) 14%, transparent); color:var(--gc,#6b7280); white-space:nowrap; }
+  .subline { margin-top:2px; display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+  .addwork { border:1px dashed var(--brand); background:transparent; color:var(--brand); font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:var(--pill); cursor:pointer; }
+  .expbtn { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:5px 10px; border-radius:var(--pill); cursor:pointer; white-space:nowrap; }
+  .expbtn:hover { border-color:var(--brand); color:var(--brand); }
+
+  /* 상세 펼침 행 */
+  tr.detrow td { background:var(--panel-2); padding:13px 18px; }
+  .detgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px 20px; }
+  .detgrid .k { font-size:11px; color:var(--muted); font-weight:700; margin-bottom:2px; }
+  .detgrid .v { font-size:13px; }
+  .det-imp { margin-top:12px; }
+  .det-imp .ci { font-size:12.5px; margin-bottom:3px; }
+
+  /* 결합 관리 모달 구성원 */
+  .gmrow { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-soft); font-size:13px; }
+  .gmrow:last-child { border-bottom:none; }
+  .gmrow span { flex:1; line-height:1.35; }
+  .gmrow button { flex:none; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:4px 11px; border-radius:var(--pill); cursor:pointer; }
+  .gmrow button:hover { border-color:var(--red); color:var(--red); }
   th { text-align:left; font-size:12px; color:var(--muted); font-weight:700; padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
   td { padding:10px 12px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
   tr:last-child td { border-bottom:none; }
@@ -182,18 +231,23 @@
 
   <div class="dash" id="dash"></div>
 
-  <p class="sec-t">상품 목록</p>
   <div class="tools">
     <input id="search" type="search" placeholder="SKU ID · 상품명 · 바코드 검색…" autocomplete="off" />
     <div class="tabs" id="tabs"></div>
-    <select id="sortSel">
-      <option value="">등록순</option>
-      <option value="work">작업 필요 우선</option>
-      <option value="mgn">여백률 낮은순</option>
-      <option value="price">판매가 높은순</option>
-      <option value="name">이름순</option>
-    </select>
-    <span class="cnt" id="cnt"></span>
+  </div>
+
+  <div class="listhead">
+    <span class="lh-t">상품 목록</span>
+    <span class="lh-r">
+      <span class="cnt" id="cnt"></span>
+      <select id="sortSel">
+        <option value="">등록순</option>
+        <option value="work">작업 필요 우선</option>
+        <option value="mgn">여백률 낮은순</option>
+        <option value="price">판매가 높은순</option>
+        <option value="name">이름순</option>
+      </select>
+    </span>
   </div>
 
   <div class="bulk" id="bulk">
@@ -207,8 +261,9 @@
   <div class="tblwrap" id="tblwrap">
     <table>
       <thead><tr>
+        <th class="fav"></th>
         <th class="ck"><input type="checkbox" id="ckAll" /></th>
-        <th>SKU ID</th><th>상품 ID</th><th>SKU 명</th><th>바코드</th><th>판매가</th><th>공급가</th><th>여백률</th><th>상태</th><th>작업 필요</th><th>액션</th>
+        <th>작업번호</th><th>타입</th><th>SKU ID</th><th>PRODUCT ID</th><th>SKU 명</th><th>상태</th><th>작업 필요</th><th>상세</th><th>액션</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -255,6 +310,23 @@
     <div class="m-actions">
       <button class="btn" onclick="closeModal()">취소</button>
       <button class="btn primary" id="mSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결합 관리 모달 -->
+<div class="ovl" id="govl">
+  <div class="modal" style="width:440px">
+    <h3>🔗 결합 관리</h3>
+    <div class="fld"><label>그룹 이름</label><input id="gName" placeholder="예: 닌텐도 스위치 네온 충전 거치대" />
+      <span class="hint">이름을 바꾸면 이 그룹 전체에 반영됩니다.</span></div>
+    <div class="fld"><label>구성 SKU — 같은 페이지로 결합할 상품들</label><div id="gMembers"></div></div>
+    <div class="m-actions" style="justify-content:space-between">
+      <button class="btn" id="gUngroupAll" style="border-color:#f3c1be;color:var(--red)">그룹 전체 해제</button>
+      <span style="display:flex;gap:8px">
+        <button class="btn" onclick="closeGroupModal()">닫기</button>
+        <button class="btn primary" id="gSave">저장</button>
+      </span>
     </div>
   </div>
 </div>
@@ -324,11 +396,12 @@ function renderDash(){
 // ── 탭 / 필터 / 정렬 ──
 let tab = "all";
 function renderTabs(){
-  const t = [["all","전체"]].concat(FLAGS.map(f=>[f[0], f[1]+" "+FLABEL(f[0])]));
+  const t = [["all","전체"]].concat(FLAGS.map(f=>[f[0], f[1]+" "+FLABEL(f[0])])).concat([["none","— 작업없음"]]);
   document.getElementById("tabs").innerHTML = t.map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
 }
 function matchTab(p){
   if (tab==="all") return true;
+  if (tab==="none") return flagsOf(p).length===0;
   return flagsOf(p).includes(tab);
 }
 function filtered(){
@@ -355,43 +428,92 @@ function filtered(){
 
 // ── 표 ──
 const SEL = new Set();
+const FAV = new Set((JSON.parse(localStorage.getItem("opsFav")||"[]")).map(Number));  // 즐겨찾기(★) — 이 브라우저 개인 표시
+const saveFav = ()=>localStorage.setItem("opsFav", JSON.stringify([...FAV]));
+const EXPANDED = new Set();    // 상세 펼친 행
+const COLLAPSED = new Set();   // 접은 그룹
+const GPAL = ["#7c4dff","#e8850c","#2f6fed","#15924a","#e0352b","#b07403"];
+const workNo = id => "#" + (((Number(id)*48271) % 900000) + 100000);   // id로부터 안정적인 6자리 작업번호
+const favFirst = arr => arr.slice().sort((a,b)=>(FAV.has(b.id)?1:0)-(FAV.has(a.id)?1:0));  // 즐겨찾기 위로
+
+function detailHtml(p){
+  const m = mgnOf(p);
+  const mgn = m===null ? "—" : `<span class="${m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo")}">${m.toFixed(1)}%</span>`;
+  const cells = [
+    ["바코드", esc(p.barcode||"") || "—"],
+    ["판매가", num(p.price)?won(num(p.price)):"—"],
+    ["공급가", num(p.supply)?won(num(p.supply)):"—"],
+    ["여백률", mgn],
+    ["리뷰 수", num(p.reviews)?num(p.reviews).toLocaleString()+"개":"—"],
+    ["쿠팡", p.coupang_url?`<a class="cp" href="${esc(p.coupang_url)}" target="_blank" rel="noopener">쿠팡에서 보기 ↗</a>`:"—"],
+    ["메모", p.note?esc(p.note):"—"],
+  ];
+  let impHtml = "";
+  try { const io = p.improve ? JSON.parse(p.improve) : null;
+    if (io && Object.keys(io).length) impHtml = `<div class="det-imp"><div class="k">보강·리뉴얼 요소</div>`+
+      Object.entries(io).map(([k,v])=>`<div class="ci">✨ <b>${esc(k)}</b>${v?` — ${esc(v)}`:""}</div>`).join("")+`</div>`;
+  } catch(e){}
+  return `<div class="detgrid">`+cells.map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")+`</div>${impHtml}`;
+}
+
+function rowHtml(p, type, color){
+  const badges = flagsOf(p).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(FLABEL(f))}</span>`).join("");
+  const exp = EXPANDED.has(p.id);
+  const pid = p.product_id ? `<span class="pidtag" style="--gc:${color||"#6b7280"}">${esc(p.product_id)}</span>` : '<span class="dash-c">—</span>';
+  return `<tr class="prow" data-id="${p.id}"${color?` style="box-shadow:inset 4px 0 0 ${color}"`:""}>
+    <td class="fav"><span class="star ${FAV.has(p.id)?"on":""}" data-fav="${p.id}">${FAV.has(p.id)?"★":"☆"}</span></td>
+    <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
+    <td><span class="wno">${workNo(p.id)}</span></td>
+    <td><span class="tag ${type==="그룹"?"tag-group":"tag-single"}">${type}</span></td>
+    <td class="skuid">${esc(p.sku||"") || '<span class="dash-c">—</span>'}</td>
+    <td>${pid}</td>
+    <td><div class="nm">${esc(p.name||"(이름 없음)")}</div>
+      <div class="subline">${p.coupang_url?`<a class="cp" href="${esc(p.coupang_url)}" target="_blank" rel="noopener">쿠팡↗</a>`:""}${num(p.reviews)?`<span class="rev">⭐ ${num(p.reviews).toLocaleString()}개 리뷰</span>`:""}</div></td>
+    <td><span class="stchip st-${esc(p.status||"정상")}">${esc(p.status||"정상")}</span></td>
+    <td><div class="fbadges">${badges}<button class="addwork" data-pop="${p.id}">＋작업</button></div></td>
+    <td><button class="expbtn" data-exp="${p.id}">${exp?"▲ 접기":"▾ 상세"}</button></td>
+    <td><div class="rowbtns"><button data-edit="${p.id}" title="수정">✏️</button><button class="del" data-del="${p.id}" title="삭제">🗑</button></div></td>
+  </tr>${exp?`<tr class="detrow" data-detail="${p.id}"><td colspan="11">${detailHtml(p)}</td></tr>`:""}`;
+}
+
+function groupHeaderHtml(g, items, color){
+  const collapsed = COLLAPSED.has(g);
+  return `<tr class="grouprow" data-group="${esc(g)}"><td colspan="11"><div class="ghead">
+    <span class="caret" data-gcollapse="${esc(g)}">${collapsed?"▶":"▼"}</span>
+    <span class="gtag" style="background:color-mix(in srgb, ${color} 15%, transparent); color:${color}">🔗 그룹</span>
+    <span class="gname">${esc(g)}</span>
+    <button class="gedit" data-gmanage="${esc(g)}" title="이름 변경·구성 관리">✏️</button>
+    <span class="gcount">${items.length}개 SKU</span>
+    <span class="gmanage"><button data-gmanage="${esc(g)}">🔗 결합 관리</button></span>
+  </div></td></tr>`;
+}
+
 function renderTable(){
   const rows = filtered();
-  document.getElementById("cnt").textContent = DATA.length ? `${rows.length}건${tab!=="all"||document.getElementById("search").value?` / 전체 ${DATA.length}건`:""}` : "";
+  const anySearch = document.getElementById("search").value;
+  document.getElementById("cnt").textContent = DATA.length ? `${rows.length}건${(tab!=="all"||anySearch)?` / 전체 ${DATA.length}건`:""}` : "";
   document.getElementById("empty").style.display = DATA.length ? "none" : "";
   document.querySelector("#tblwrap table").style.display = DATA.length ? "" : "none";
-  const GPAL = ["#7c4dff","#e8850c","#2f6fed","#15924a","#e0352b","#b07403"];
-  const groups = [...new Set(rows.filter(p=>p.merge_group).map(p=>p.merge_group))];
-  const gc = g => GPAL[groups.indexOf(g) % GPAL.length];
-  document.getElementById("tbody").innerHTML = rows.map(p=>{
-    const m = mgnOf(p);
-    const mgn = m===null ? `<span class="dash-c">—</span>` : `<span class="${m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo")}">${m.toFixed(1)}%</span>`;
-    const badges = flagsOf(p).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(FLABEL(f))}</span>`).join("");
-    let impHtml = "";
-    try { const io = p.improve ? JSON.parse(p.improve) : null;
-      if (io) impHtml = Object.entries(io).map(([k,v])=>`<div class="memo">✨ ${esc(k)}${v?`: ${esc(v)}`:""}</div>`).join("");
-    } catch(e){}
-    const g = p.merge_group;
-    return `<tr data-id="${p.id}"${g?` style="box-shadow:inset 4px 0 0 ${gc(g)}"`:""}>
-      <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
-      <td class="skuid">${esc(p.sku||"")}</td>
-      <td class="skuid">${esc(p.product_id||"") || '<span class="dash-c">—</span>'}${g?`<div><span class="grp" style="--gc:${gc(g)}">🔗 ${esc(g)}</span></div>`:""}</td>
-      <td><div class="nm">${esc(p.name||"(이름 없음)")}${p.coupang_url?` <a class="cp" href="${esc(p.coupang_url)}" target="_blank" rel="noopener">쿠팡↗</a>`:""}</div>
-        ${num(p.reviews)?`<div class="rev">⭐ ${num(p.reviews).toLocaleString()}개 리뷰</div>`:""}
-        ${p.note?`<div class="memo">📝 ${esc(p.note)}</div>`:""}</td>
-      <td class="rt">${esc(p.barcode||"") || '<span class="dash-c">—</span>'}</td>
-      <td class="rt">${num(p.price)?won(num(p.price)):'<span class="dash-c">—</span>'}</td>
-      <td class="rt">${num(p.supply)?won(num(p.supply)):'<span class="dash-c">—</span>'}</td>
-      <td class="rt">${mgn}</td>
-      <td><span class="stchip st-${esc(p.status||"정상")}">${esc(p.status||"정상")}</span></td>
-      <td><div class="fbadges">${badges||'<span class="dash-c">—</span>'}</div>${impHtml}</td>
-      <td><div class="rowbtns">
-        <button data-pop="${p.id}">🏷 작업</button>
-        <button data-edit="${p.id}">✏️ 수정</button>
-        <button class="del" data-del="${p.id}">🗑</button>
-      </div></td>
-    </tr>`;
-  }).join("");
+
+  const singles = favFirst(rows.filter(p=>!p.merge_group));
+  const grouped = rows.filter(p=>p.merge_group);
+  const gorder=[], gmap={};
+  grouped.forEach(p=>{ if(!gmap[p.merge_group]){gmap[p.merge_group]=[];gorder.push(p.merge_group);} gmap[p.merge_group].push(p); });
+  const gcMap = {}; gorder.forEach((g,i)=>gcMap[g]=GPAL[i%GPAL.length]);
+
+  let html = "";
+  if (singles.length){
+    html += `<tr class="secrow"><td colspan="11">단일 상품 · ${singles.length}건</td></tr>`;
+    html += singles.map(p=>rowHtml(p,"단일",null)).join("");
+  }
+  if (grouped.length){
+    html += `<tr class="secrow"><td colspan="11">그룹 상품 · ${grouped.length}건</td></tr>`;
+    gorder.forEach(g=>{
+      html += groupHeaderHtml(g, gmap[g], gcMap[g]);
+      if (!COLLAPSED.has(g)) html += favFirst(gmap[g]).map(p=>rowHtml(p,"그룹",gcMap[g])).join("");
+    });
+  }
+  document.getElementById("tbody").innerHTML = html;
   document.getElementById("ckAll").checked = rows.length>0 && rows.every(p=>SEL.has(p.id));
   renderBulk();
 }
@@ -571,7 +693,7 @@ document.getElementById("mSave").addEventListener("click", async ()=>{
 });
 document.getElementById("btnAdd").addEventListener("click", ()=>openModal());
 document.getElementById("ovl").addEventListener("click", e=>{ if (e.target.id==="ovl") closeModal(); });
-document.addEventListener("keydown", e=>{ if (e.key==="Escape"){ closeModal(); pop.style.display="none"; } });
+document.addEventListener("keydown", e=>{ if (e.key==="Escape"){ closeModal(); closeGroupModal(); pop.style.display="none"; } });
 
 // ── 작업 지정 팝오버 (단일/일괄 공용) ──
 const pop = document.getElementById("pop");
@@ -612,6 +734,14 @@ document.addEventListener("click", e=>{
 
 // ── 표 이벤트 (위임) ──
 document.getElementById("tbody").addEventListener("click", async e=>{
+  const fav = e.target.closest("[data-fav]");
+  if (fav){ const id=Number(fav.dataset.fav); FAV.has(id)?FAV.delete(id):FAV.add(id); saveFav(); renderTable(); return; }
+  const ex = e.target.closest("[data-exp]");
+  if (ex){ const id=Number(ex.dataset.exp); EXPANDED.has(id)?EXPANDED.delete(id):EXPANDED.add(id); renderTable(); return; }
+  const gc = e.target.closest("[data-gcollapse]");
+  if (gc){ const g=gc.dataset.gcollapse; COLLAPSED.has(g)?COLLAPSED.delete(g):COLLAPSED.add(g); renderTable(); return; }
+  const gm = e.target.closest("[data-gmanage]");
+  if (gm){ openGroupModal(gm.dataset.gmanage); return; }
   const sel = e.target.closest("[data-sel]");
   if (sel){ sel.checked ? SEL.add(Number(sel.dataset.sel)) : SEL.delete(Number(sel.dataset.sel)); renderBulk();
     document.getElementById("ckAll").checked = filtered().every(p=>SEL.has(p.id)); return; }
@@ -633,13 +763,21 @@ document.getElementById("ckAll").addEventListener("change", e=>{
 });
 document.getElementById("bulkFlag").addEventListener("click", e=>openPop([...SEL], e.target));
 // ── 결합 그룹 묶기/해제 ──
+// 선택 상품들의 공통 단어로 그룹 이름 자동 생성 (브랜드·숫자 제거, 없으면 그룹N)
+function commonName(items){
+  const wordsArr = items.map(p=>String(p.name||"").split(/\s+/).filter(Boolean));
+  if (!wordsArr.length || !wordsArr[0].length) return "";
+  let common = wordsArr[0].filter(w=> wordsArr.every(ws=>ws.includes(w)));
+  common = common.filter(w=> !/^\d+$/.test(w) && !/^(SNN|SSN|SET)[-\d]*$/i.test(w));
+  return common.join(" ").replace(/^스페이스쉴드\s*/,"").trim().slice(0,40);
+}
 document.getElementById("bulkGroup").addEventListener("click", async ()=>{
   if (SEL.size < 2){ toast("2개 이상 선택해야 그룹으로 묶을 수 있습니다"); return; }
-  // 다음 그룹 이름: G1, G2, … (기존 최대 번호 +1)
-  let maxN = 0;
-  DATA.forEach(p=>{ const m = String(p.merge_group||"").match(/^G(\d+)$/); if (m) maxN = Math.max(maxN, +m[1]); });
-  const g = "G" + (maxN+1);
   const ids = [...SEL];
+  const sel = ids.map(id=>DATA.find(p=>p.id===id));
+  let g = commonName(sel) || "그룹";
+  const exists = new Set(DATA.map(p=>p.merge_group).filter(Boolean));
+  if (exists.has(g)){ let n=2; while (exists.has(g+" "+n)) n++; g = g+" "+n; }
   // 그룹 지정 + 각 행에 '결합' 작업 플래그 추가 (행마다 기존 플래그가 달라 개별 업데이트)
   const results = await Promise.all(ids.map(id=>{
     const p = DATA.find(x=>x.id===id);
@@ -672,6 +810,55 @@ document.getElementById("bulkDel").addEventListener("click", async ()=>{
     DATA = DATA.filter(p=>!SEL.has(p.id)); SEL.clear(); render(); toast("삭제되었습니다");
   }
 });
+
+// ── 결합 관리 모달 (그룹 이름 변경 / 구성원 빼기 / 전체 해제) ──
+let gOld = null;
+function openGroupModal(g){
+  gOld = g;
+  document.getElementById("gName").value = g;
+  renderGMembers();
+  document.getElementById("govl").classList.add("show");
+}
+function closeGroupModal(){ document.getElementById("govl").classList.remove("show"); }
+function renderGMembers(){
+  const mem = DATA.filter(p=>p.merge_group===gOld);
+  document.getElementById("gMembers").innerHTML = mem.length
+    ? mem.map(p=>`<div class="gmrow"><span>${esc(p.name||"(이름 없음)")}<br><span class="skuid">${esc(p.sku||"")}</span></span><button data-remove="${p.id}">그룹에서 빼기</button></div>`).join("")
+    : `<div class="dash-c" style="padding:8px 0">구성원이 없습니다.</div>`;
+}
+document.getElementById("gMembers").addEventListener("click", async e=>{
+  const rm = e.target.closest("[data-remove]"); if (!rm) return;
+  const id = Number(rm.dataset.remove);
+  const { error } = await sb.from(TABLE).update({ merge_group:null }).eq("id", id);
+  if (error) return dberr("그룹에서 빼기", error);
+  const p = DATA.find(x=>x.id===id); if (p) p.merge_group = null;
+  renderGMembers(); renderTable(); toast("그룹에서 뺐습니다");
+});
+document.getElementById("gSave").addEventListener("click", async ()=>{
+  const nn = document.getElementById("gName").value.trim();
+  if (!nn){ toast("그룹 이름을 입력하세요"); return; }
+  if (nn !== gOld){
+    const ids = DATA.filter(p=>p.merge_group===gOld).map(p=>p.id);
+    if (ids.length){
+      const { error } = await sb.from(TABLE).update({ merge_group:nn }).in("id", ids);
+      if (error) return dberr("이름 변경", error);
+      ids.forEach(id=>{ const p=DATA.find(x=>x.id===id); if (p) p.merge_group = nn; });
+    }
+    if (COLLAPSED.has(gOld)){ COLLAPSED.delete(gOld); COLLAPSED.add(nn); }
+    gOld = nn;
+  }
+  closeGroupModal(); renderTable(); toast("저장되었습니다");
+});
+document.getElementById("gUngroupAll").addEventListener("click", async ()=>{
+  const ids = DATA.filter(p=>p.merge_group===gOld).map(p=>p.id);
+  if (!ids.length){ closeGroupModal(); return; }
+  if (!confirm(`"${gOld}" 그룹을 통째로 해제할까요? (${ids.length}개 SKU의 결합 묶음만 풀립니다)`)) return;
+  const { error } = await sb.from(TABLE).update({ merge_group:null }).in("id", ids);
+  if (error) return dberr("그룹 해제", error);
+  ids.forEach(id=>{ const p=DATA.find(x=>x.id===id); if (p) p.merge_group = null; });
+  closeGroupModal(); renderTable(); toast("그룹을 해제했습니다");
+});
+document.getElementById("govl").addEventListener("click", e=>{ if (e.target.id==="govl") closeGroupModal(); });
 document.getElementById("dash").addEventListener("click", e=>{
   const c = e.target.closest("[data-tab]"); if (!c) return;
   tab = (tab===c.dataset.tab) ? "all" : c.dataset.tab; render();
