@@ -82,8 +82,12 @@
   a.cp { font-size:11px; text-decoration:none; color:var(--brand); white-space:nowrap; }
   .grp { display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:800; margin-top:3px; padding:1px 7px; border-radius:var(--pill); border:1px solid var(--gc); color:var(--gc); background:color-mix(in srgb, var(--gc) 9%, transparent); white-space:nowrap; }
   .flagpick { display:flex; flex-wrap:wrap; gap:6px; }
-  .flagpick button { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:6px 11px; border-radius:var(--pill); cursor:pointer; }
-  .flagpick button.on { border-color:var(--fc); color:var(--fc); background:color-mix(in srgb, var(--fc) 12%, transparent); }
+  .flagpick button, .imp-row button { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:6px 11px; border-radius:var(--pill); cursor:pointer; }
+  .flagpick button.on, .imp-row button.on { border-color:var(--fc); color:var(--fc); background:color-mix(in srgb, var(--fc) 12%, transparent); }
+  .imp-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .imp-row button { flex:none; width:92px; }
+  .imp-row input { flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--panel-2); color:var(--text); font-size:13px; }
+  .imp-row input.hide { display:none; }
   .memo { font-size:11.5px; color:var(--muted); margin-top:2px; max-width:260px; }
   td.rt { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .dash-c { color:var(--muted); }
@@ -245,6 +249,7 @@
       <div class="fld"><label>결합 그룹</label><input id="fGroup" placeholder="예: G1 (같은 값끼리 묶여 표시)" /></div>
     </div>
     <div class="fld"><label>작업 필요</label><div class="flagpick" id="fFlags"></div></div>
+    <div class="fld hide" id="fImpWrap"><label>보강·리뉴얼 요소 — 무엇을 어떻게 바꿀지</label><div id="fImp"></div></div>
     <div class="fld"><label>메모</label><textarea id="fNote" placeholder="운영 메모 (선택)"></textarea>
       <span class="hint">여백률: <span id="fMgn">—</span> (판매가·공급가 입력 시 자동 계산)</span></div>
     <div class="m-actions">
@@ -273,17 +278,20 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 let DATA = [], session = null;
 
 const FLAGS = [
-  ["수정","✏️","var(--red)"], ["보강","✨","var(--orange)"], ["리뉴얼","🔄","var(--blue)"],
+  ["수정","✏️","var(--red)"], ["보강","✨","var(--orange)"],
   ["결합","🔗","var(--purple)"], ["분리","✂️","var(--brown)"], ["가격변경","💰","var(--gold)"], ["신고","🚨","var(--red)"],
 ];
 const FC = Object.fromEntries(FLAGS.map(f=>[f[0],f[2]]));
 const FI = Object.fromEntries(FLAGS.map(f=>[f[0],f[1]]));
+const FLABEL = f => f==="보강" ? "보강·리뉴얼" : f;   // 보강=카탈로그 수정, 리뉴얼과 동일 요소라 하나로 통합
+// 보강·리뉴얼 대상 요소 (선택 후 요소별 변경 내용 기입)
+const IMP_ITEMS = ["SKU명","노출상품명","옵션","상세이미지","대표이미지"];
 
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num = v => { const n = parseFloat(String(v??"").replace(/[^\d.]/g,"")); return isFinite(n)&&n>0 ? n : 0; };
 const won = n => "₩" + Math.round(n).toLocaleString();
 const mgnOf = p => { const a=num(p.price), b=num(p.supply); return (a>0&&b>0&&b<a) ? (a-b)/a*100 : null; };
-const flagsOf = p => String(p.flags||"").split(",").map(s=>s.trim()).filter(Boolean);
+const flagsOf = p => [...new Set(String(p.flags||"").split(",").map(s=>s.trim()).map(f=>f==="리뉴얼"?"보강":f).filter(Boolean))];   // 옛 '리뉴얼' 값은 '보강'으로 흡수
 
 let toastT;
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
@@ -301,7 +309,7 @@ function show(view){ // "loading" | "login" | "app"
 const CARDS = [
   { lbl:"수정 요청",    cap:"쿠팡 반려 / 수정 요청 대기", cls:"n-red",    tab:"수정",    has:p=>flagsOf(p).includes("수정") },
   { lbl:"결합 필요",    cap:"분리 노출 중인 동일 상품",   cls:"n-orange", tab:"결합",    has:p=>flagsOf(p).includes("결합") },
-  { lbl:"보강 / 리뉴얼", cap:"콘텐츠 개선 대기",          cls:"n-blue",   tab:"improve", has:p=>flagsOf(p).some(f=>f==="보강"||f==="리뉴얼") },
+  { lbl:"보강 / 리뉴얼", cap:"콘텐츠 개선 대기",          cls:"n-blue",   tab:"보강",    has:p=>flagsOf(p).includes("보강") },
   { lbl:"이슈 감지",    cap:"편승 판매자 신고 대기",      cls:"n-green",  tab:"신고",    has:p=>flagsOf(p).includes("신고") },
 ];
 function renderDash(){
@@ -316,12 +324,11 @@ function renderDash(){
 // ── 탭 / 필터 / 정렬 ──
 let tab = "all";
 function renderTabs(){
-  const t = [["all","전체"]].concat(FLAGS.map(f=>[f[0], f[1]+" "+f[0]]));
+  const t = [["all","전체"]].concat(FLAGS.map(f=>[f[0], f[1]+" "+FLABEL(f[0])]));
   document.getElementById("tabs").innerHTML = t.map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
 }
 function matchTab(p){
   if (tab==="all") return true;
-  if (tab==="improve") return flagsOf(p).some(f=>f==="보강"||f==="리뉴얼");
   return flagsOf(p).includes(tab);
 }
 function filtered(){
@@ -359,7 +366,11 @@ function renderTable(){
   document.getElementById("tbody").innerHTML = rows.map(p=>{
     const m = mgnOf(p);
     const mgn = m===null ? `<span class="dash-c">—</span>` : `<span class="${m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo")}">${m.toFixed(1)}%</span>`;
-    const badges = flagsOf(p).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(f)}</span>`).join("");
+    const badges = flagsOf(p).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(FLABEL(f))}</span>`).join("");
+    let impHtml = "";
+    try { const io = p.improve ? JSON.parse(p.improve) : null;
+      if (io) impHtml = Object.entries(io).map(([k,v])=>`<div class="memo">✨ ${esc(k)}${v?`: ${esc(v)}`:""}</div>`).join("");
+    } catch(e){}
     const g = p.merge_group;
     return `<tr data-id="${p.id}"${g?` style="box-shadow:inset 4px 0 0 ${gc(g)}"`:""}>
       <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
@@ -373,7 +384,7 @@ function renderTable(){
       <td class="rt">${num(p.supply)?won(num(p.supply)):'<span class="dash-c">—</span>'}</td>
       <td class="rt">${mgn}</td>
       <td><span class="stchip st-${esc(p.status||"정상")}">${esc(p.status||"정상")}</span></td>
-      <td><div class="fbadges">${badges||'<span class="dash-c">—</span>'}</div></td>
+      <td><div class="fbadges">${badges||'<span class="dash-c">—</span>'}</div>${impHtml}</td>
       <td><div class="rowbtns">
         <button data-pop="${p.id}">🏷 작업</button>
         <button data-edit="${p.id}">✏️ 수정</button>
@@ -412,9 +423,32 @@ async function loadData(){
 // ── 상품 추가/수정 모달 ──
 let editId = null;
 function renderFlagPick(cur){
-  document.getElementById("fFlags").innerHTML = FLAGS.map(([f,ic,c])=>
-    `<button type="button" data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${f}</button>`).join("");
+  // '수정'은 쿠팡 반려 대응용이라 직접 입력 폼에서는 제외 (목록의 🏷 작업에서는 지정 가능)
+  document.getElementById("fFlags").innerHTML = FLAGS.filter(f=>f[0]!=="수정").map(([f,ic,c])=>
+    `<button type="button" data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${FLABEL(f)}</button>`).join("");
+  syncImpVisible();
 }
+function renderImp(cur){
+  cur = cur || {};
+  document.getElementById("fImp").innerHTML = IMP_ITEMS.map(it=>{
+    const on = it in cur;
+    return `<div class="imp-row">
+      <button type="button" data-imp="${it}" style="--fc:var(--orange)" class="${on?"on":""}">${it}</button>
+      <input data-impv="${it}" class="${on?"":"hide"}" placeholder="예: 현재 a → b 로 변경" value="${esc(cur[it]||"")}" />
+    </div>`;
+  }).join("");
+}
+function syncImpVisible(){
+  const on = !!document.querySelector('#fFlags [data-f="보강"].on');
+  document.getElementById("fImpWrap").classList.toggle("hide", !on);
+}
+document.getElementById("fImp").addEventListener("click", e=>{
+  const b = e.target.closest("[data-imp]"); if (!b) return;
+  b.classList.toggle("on");
+  const inp = document.querySelector(`#fImp [data-impv="${b.dataset.imp}"]`);
+  inp.classList.toggle("hide", !b.classList.contains("on"));
+  if (b.classList.contains("on")) inp.focus();
+});
 let curUrl = null;   // 쿠팡 상품 URL — 입력칸 없이 📋 붙여넣기에서 자동 캡처만
 function openModal(id, pre){
   editId = id || null;
@@ -424,13 +458,18 @@ function openModal(id, pre){
   fSku.value=p.sku||""; fPid.value=p.product_id||p.pid||""; fBarcode.value=p.barcode||""; fName.value=p.name||"";
   fPrice.value=p.price||""; fSupply.value=p.supply||""; fStatus.value=p.status||"정상";
   fReviews.value=p.reviews||""; fGroup.value=p.merge_group||""; fNote.value=p.note||"";
+  let imp = null;
+  try { imp = p.improve ? JSON.parse(p.improve) : null; } catch(e){}
+  renderImp(imp);
   renderFlagPick(id ? flagsOf(p) : (Array.isArray(p.flags)?p.flags:[]));
   updMgn();
   document.getElementById("ovl").classList.add("show");
   setTimeout(()=>fName.focus(), 50);
 }
 document.getElementById("fFlags").addEventListener("click", e=>{
-  const b = e.target.closest("[data-f]"); if (b) b.classList.toggle("on");
+  const b = e.target.closest("[data-f]"); if (!b) return;
+  b.classList.toggle("on");
+  if (b.dataset.f==="보강") syncImpVisible();
 });
 // ── 📋 붙여넣기 자동 인식: URL·공유텍스트·페이지 전체복사(⌘A⌘C) 무엇이든 파싱 ──
 function parseSmart(t){
@@ -501,9 +540,14 @@ document.getElementById("mSave").addEventListener("click", async ()=>{
   const dup = DATA.find(p=>p.sku===sku && p.id!==editId);
   if (dup && !confirm(`SKU ID "${sku}" 가 이미 있습니다 (${dup.name}). 그래도 저장할까요?`)) return;
   const flags = [...document.querySelectorAll("#fFlags [data-f].on")].map(b=>b.dataset.f).join(",");
+  const imp = {};
+  if (flags.includes("보강")) document.querySelectorAll("#fImp [data-imp].on").forEach(b=>{
+    imp[b.dataset.imp] = document.querySelector(`#fImp [data-impv="${b.dataset.imp}"]`).value.trim();
+  });
   const vals = { sku, name, barcode:fBarcode.value.trim()||null, price:num(fPrice.value)||null, supply:num(fSupply.value)||null,
                  status:fStatus.value, reviews:num(fReviews.value)||null, note:fNote.value.trim()||null,
-                 flags, coupang_url:curUrl||null, product_id:fPid.value.trim()||null, merge_group:fGroup.value.trim()||null };
+                 flags, coupang_url:curUrl||null, product_id:fPid.value.trim()||null, merge_group:fGroup.value.trim()||null,
+                 improve: Object.keys(imp).length ? JSON.stringify(imp) : null };
   const btn = document.getElementById("mSave"); btn.disabled = true;
   // DB에 아직 없는 컬럼(구 스키마)이면 그 필드만 빼고 재시도
   const run = editId
@@ -521,7 +565,7 @@ document.getElementById("mSave").addEventListener("click", async ()=>{
   if (editId) Object.assign(DATA.find(p=>p.id===editId), sent);
   else DATA.push(data);
   toast(missing.length
-    ? `저장됨 — ${missing.join(", ")} 저장은 supabase_ops_products_v3.sql 실행 후 가능`
+    ? `저장됨 — ${missing.join(", ")} 저장은 supabase_ops_products_v4.sql 실행 후 가능`
     : (editId ? "수정되었습니다" : "상품이 추가되었습니다"));
   closeModal(); render();
 });
@@ -538,7 +582,7 @@ function openPop(ids, anchor){
   const cur = ids.length===1 ? flagsOf(first) : [];
   const title = ids.length===1 ? first.name : `선택한 ${ids.length}개 상품`;
   pop.innerHTML = `<h4>${esc(title)} — 작업 지정</h4>
-    <div class="flags">${FLAGS.map(([f,ic,c])=>`<button data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${f}</button>`).join("")}</div>
+    <div class="flags">${FLAGS.map(([f,ic,c])=>`<button data-f="${f}" style="--fc:${c}" class="${cur.includes(f)?"on":""}">${ic} ${FLABEL(f)}</button>`).join("")}</div>
     ${ids.length===1?`<textarea id="popNote" placeholder="운영 메모 (선택)">${esc(first.note||"")}</textarea>`:""}
     <div class="row"><button data-act="close">닫기</button><button class="save" data-act="save">저장</button></div>`;
   pop.style.display = "block";
@@ -604,7 +648,7 @@ document.getElementById("bulkGroup").addEventListener("click", async ()=>{
   }));
   const bad = results.find(r=>r.error);
   if (bad){
-    if (/merge_group/i.test(bad.error.message||"")) alert("결합 그룹 저장에는 DB 컬럼이 필요합니다.\nSQL Editor에서 supabase_ops_products_v3.sql 을 실행해 주세요.");
+    if (/merge_group/i.test(bad.error.message||"")) alert("결합 그룹 저장에는 DB 컬럼이 필요합니다.\nSQL Editor에서 supabase_ops_products_v4.sql 을 실행해 주세요.");
     else dberr("그룹 묶기", bad.error);
     return;
   }
@@ -660,7 +704,7 @@ document.getElementById("fileImport").addEventListener("change", e=>{
     const rows = items.map(p=>({ sku:p.sku||null, name:p.name||"(이름 없음)", barcode:p.barcode||null,
       price:num(p.price)||null, supply:num(p.supply)||null, status:p.status||"정상",
       reviews:num(p.reviews)||null, flags:Array.isArray(p.flags)?p.flags.join(","):String(p.flags||""), note:p.note||null,
-      coupang_url:p.coupang_url||null, product_id:p.product_id||null, merge_group:p.merge_group||null }));
+      coupang_url:p.coupang_url||null, product_id:p.product_id||null, merge_group:p.merge_group||null, improve:p.improve||null }));
     for (let i=0; i<rows.length; i+=200){
       const { error } = await sb.from(TABLE).insert(rows.slice(i, i+200));
       if (error) return dberr("복원", error);
