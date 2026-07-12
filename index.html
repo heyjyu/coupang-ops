@@ -80,6 +80,7 @@
   .nm { font-weight:600; line-height:1.35; }
   .rev { font-size:11.5px; color:var(--orange); margin-top:1px; }
   a.cp { font-size:11px; text-decoration:none; color:var(--brand); white-space:nowrap; }
+  .grp { display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:800; margin-top:3px; padding:1px 7px; border-radius:var(--pill); border:1px solid var(--gc); color:var(--gc); background:color-mix(in srgb, var(--gc) 9%, transparent); white-space:nowrap; }
   .flagpick { display:flex; flex-wrap:wrap; gap:6px; }
   .flagpick button { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600; padding:6px 11px; border-radius:var(--pill); cursor:pointer; }
   .flagpick button.on { border-color:var(--fc); color:var(--fc); background:color-mix(in srgb, var(--fc) 12%, transparent); }
@@ -194,6 +195,8 @@
   <div class="bulk" id="bulk">
     <span id="bulkN"></span>
     <button id="bulkFlag">🏷 작업 지정</button>
+    <button id="bulkGroup" title="선택한 SKU들을 결합 대상 그룹으로 묶어 표에서 붙여 보여줍니다">🔗 결합 그룹 묶기</button>
+    <button id="bulkUngroup">그룹 해제</button>
     <button class="del" id="bulkDel">🗑 선택 삭제</button>
   </div>
 
@@ -201,7 +204,7 @@
     <table>
       <thead><tr>
         <th class="ck"><input type="checkbox" id="ckAll" /></th>
-        <th>SKU ID</th><th>SKU 명</th><th>바코드</th><th>판매가</th><th>공급가</th><th>여백률</th><th>상태</th><th>작업 필요</th><th>액션</th>
+        <th>SKU ID</th><th>상품 ID</th><th>SKU 명</th><th>바코드</th><th>판매가</th><th>공급가</th><th>여백률</th><th>상태</th><th>작업 필요</th><th>액션</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -220,12 +223,17 @@
     <h3 id="mTitle">상품 추가</h3>
     <div class="fld"><label>📋 쿠팡에서 복사한 것 붙여넣기 (자동 입력)</label>
       <textarea id="fPaste" rows="1" placeholder="쿠팡 상품 페이지에서 ⌘A→⌘C(전체복사) 하거나 주소(URL)를 복사해서 여기에 붙여넣기" style="min-height:42px"></textarea>
-      <span class="hint">붙여넣는 순간 상품명·판매가·리뷰수·SKU ID를 자동 인식해 아래 칸을 채웁니다. 주소(URL)를 붙여넣으면 목록에 쿠팡↗ 링크도 달립니다.</span></div>
+      <span class="hint">붙여넣는 순간 상품명·판매가·리뷰수·상품 ID를 자동 인식해 아래 칸을 채웁니다. 주소(URL)를 붙여넣으면 목록에 쿠팡↗ 링크도 달립니다.</span></div>
     <div class="grid2">
       <div class="fld"><label>SKU ID</label><input id="fSku" placeholder="비우면 자동 생성" /></div>
-      <div class="fld"><label>바코드</label><input id="fBarcode" placeholder="예: 8801234567890" inputmode="numeric" /></div>
+      <div class="fld"><label>상품 ID (노출)</label><input id="fPid" placeholder="예: 8969184502" inputmode="numeric" />
+        <span class="hint">쿠팡 노출 페이지 ID — 같으면 한 페이지에 묶여 후기 공유</span></div>
     </div>
     <div class="fld"><label>SKU 명 <b>*</b></label><input id="fName" placeholder="예: 갤럭시 워치6 44mm 실리콘 밴드 블랙" /></div>
+    <div class="grid2">
+      <div class="fld"><label>바코드</label><input id="fBarcode" placeholder="예: 8801234567890" inputmode="numeric" /></div>
+      <div class="fld"><label>리뷰 수</label><input id="fReviews" placeholder="예: 3241" inputmode="numeric" /></div>
+    </div>
     <div class="grid2">
       <div class="fld"><label>판매가 (원)</label><input id="fPrice" placeholder="예: 12900" inputmode="numeric" /></div>
       <div class="fld"><label>공급가 (원)</label><input id="fSupply" placeholder="예: 5200" inputmode="numeric" /></div>
@@ -234,7 +242,7 @@
       <div class="fld"><label>상태</label>
         <select id="fStatus"><option>정상</option><option>품절</option><option>판매중지</option><option>승인대기</option></select>
       </div>
-      <div class="fld"><label>리뷰 수</label><input id="fReviews" placeholder="예: 3241" inputmode="numeric" /></div>
+      <div class="fld"><label>결합 그룹</label><input id="fGroup" placeholder="예: G1 (같은 값끼리 묶여 표시)" /></div>
     </div>
     <div class="fld"><label>작업 필요</label><div class="flagpick" id="fFlags"></div></div>
     <div class="fld"><label>메모</label><textarea id="fNote" placeholder="운영 메모 (선택)"></textarea>
@@ -319,12 +327,22 @@ function matchTab(p){
 function filtered(){
   const q = document.getElementById("search").value.trim().toLowerCase();
   let rows = DATA.filter(p=> matchTab(p) &&
-    (!q || String(p.sku||"").toLowerCase().includes(q) || String(p.name||"").toLowerCase().includes(q) || String(p.barcode||"").includes(q)));
+    (!q || String(p.sku||"").toLowerCase().includes(q) || String(p.name||"").toLowerCase().includes(q)
+        || String(p.barcode||"").includes(q) || String(p.product_id||"").includes(q)));
   const s = document.getElementById("sortSel").value;
   if (s==="work")  rows = rows.slice().sort((a,b)=>flagsOf(b).length-flagsOf(a).length);
   if (s==="mgn")   rows = rows.slice().sort((a,b)=>(mgnOf(a)??999)-(mgnOf(b)??999));
   if (s==="price") rows = rows.slice().sort((a,b)=>num(b.price)-num(a.price));
   if (s==="name")  rows = rows.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"ko"));
+  // 결합 그룹 멤버는 서로 붙여서 표시 (그룹 첫 등장 위치에 나머지를 끌어옴)
+  const pos = new Map(rows.map((p,i)=>[p.id,i]));
+  const anchor = new Map();
+  rows.forEach((p,i)=>{ if (p.merge_group && !anchor.has(p.merge_group)) anchor.set(p.merge_group, i); });
+  if (anchor.size) rows = rows.slice().sort((a,b)=>{
+    const ka = a.merge_group ? anchor.get(a.merge_group) : pos.get(a.id);
+    const kb = b.merge_group ? anchor.get(b.merge_group) : pos.get(b.id);
+    return ka-kb || pos.get(a.id)-pos.get(b.id);
+  });
   return rows;
 }
 
@@ -335,13 +353,18 @@ function renderTable(){
   document.getElementById("cnt").textContent = DATA.length ? `${rows.length}건${tab!=="all"||document.getElementById("search").value?` / 전체 ${DATA.length}건`:""}` : "";
   document.getElementById("empty").style.display = DATA.length ? "none" : "";
   document.querySelector("#tblwrap table").style.display = DATA.length ? "" : "none";
+  const GPAL = ["#7c4dff","#e8850c","#2f6fed","#15924a","#e0352b","#b07403"];
+  const groups = [...new Set(rows.filter(p=>p.merge_group).map(p=>p.merge_group))];
+  const gc = g => GPAL[groups.indexOf(g) % GPAL.length];
   document.getElementById("tbody").innerHTML = rows.map(p=>{
     const m = mgnOf(p);
     const mgn = m===null ? `<span class="dash-c">—</span>` : `<span class="${m>=50?"mgn-hi":(m>=30?"mgn-mid":"mgn-lo")}">${m.toFixed(1)}%</span>`;
     const badges = flagsOf(p).map(f=>`<span class="fb" style="--fc:${FC[f]||"#888"}">${FI[f]||""} ${esc(f)}</span>`).join("");
-    return `<tr data-id="${p.id}">
+    const g = p.merge_group;
+    return `<tr data-id="${p.id}"${g?` style="box-shadow:inset 4px 0 0 ${gc(g)}"`:""}>
       <td class="ck"><input type="checkbox" data-sel="${p.id}" ${SEL.has(p.id)?"checked":""} /></td>
       <td class="skuid">${esc(p.sku||"")}</td>
+      <td class="skuid">${esc(p.product_id||"") || '<span class="dash-c">—</span>'}${g?`<div><span class="grp" style="--gc:${gc(g)}">🔗 ${esc(g)}</span></div>`:""}</td>
       <td><div class="nm">${esc(p.name||"(이름 없음)")}${p.coupang_url?` <a class="cp" href="${esc(p.coupang_url)}" target="_blank" rel="noopener">쿠팡↗</a>`:""}</div>
         ${num(p.reviews)?`<div class="rev">⭐ ${num(p.reviews).toLocaleString()}개 리뷰</div>`:""}
         ${p.note?`<div class="memo">📝 ${esc(p.note)}</div>`:""}</td>
@@ -398,9 +421,9 @@ function openModal(id, pre){
   const p = id ? DATA.find(x=>x.id===id) : (pre||{});
   document.getElementById("mTitle").textContent = id ? "상품 수정" : "상품 추가";
   curUrl = p.coupang_url || p.url || null;
-  fSku.value=p.sku||""; fBarcode.value=p.barcode||""; fName.value=p.name||"";
+  fSku.value=p.sku||""; fPid.value=p.product_id||p.pid||""; fBarcode.value=p.barcode||""; fName.value=p.name||"";
   fPrice.value=p.price||""; fSupply.value=p.supply||""; fStatus.value=p.status||"정상";
-  fReviews.value=p.reviews||""; fNote.value=p.note||"";
+  fReviews.value=p.reviews||""; fGroup.value=p.merge_group||""; fNote.value=p.note||"";
   renderFlagPick(id ? flagsOf(p) : (Array.isArray(p.flags)?p.flags:[]));
   updMgn();
   document.getElementById("ovl").classList.add("show");
@@ -416,7 +439,7 @@ function parseSmart(t){
   if (um){
     out.url = um[0];
     const pm = out.url.match(/products\/(\d+)/);
-    if (pm) out.sku = "CP-"+pm[1];
+    if (pm) out.pid = pm[1];   // URL 의 상품번호 = 노출 상품 ID
   }
   const rm = t.match(/([\d,]+)\s*개?\s*(?:상품평|리뷰)/);
   if (rm) out.reviews = rm[1].replace(/,/g,"");
@@ -453,7 +476,7 @@ document.getElementById("fPaste").addEventListener("paste", e=>{
   if (r.price){ fPrice.value = r.price; got.push("판매가"); }
   if (r.reviews){ fReviews.value = r.reviews; got.push("리뷰수"); }
   if (r.url){ curUrl = r.url; got.push("쿠팡링크"); }
-  if (r.sku && !fSku.value.trim()){ fSku.value = r.sku; got.push("SKU ID"); }
+  if (r.pid){ fPid.value = r.pid; got.push("상품 ID"); }
   e.target.value = "";
   updMgn();
   toast(got.length ? "자동 입력: " + got.join(" · ") : "인식된 정보가 없습니다 — 쿠팡 페이지에서 전체복사(⌘A→⌘C) 후 다시 붙여넣어 보세요");
@@ -480,23 +503,26 @@ document.getElementById("mSave").addEventListener("click", async ()=>{
   const flags = [...document.querySelectorAll("#fFlags [data-f].on")].map(b=>b.dataset.f).join(",");
   const vals = { sku, name, barcode:fBarcode.value.trim()||null, price:num(fPrice.value)||null, supply:num(fSupply.value)||null,
                  status:fStatus.value, reviews:num(fReviews.value)||null, note:fNote.value.trim()||null,
-                 flags, coupang_url:curUrl||null };
+                 flags, coupang_url:curUrl||null, product_id:fPid.value.trim()||null, merge_group:fGroup.value.trim()||null };
   const btn = document.getElementById("mSave"); btn.disabled = true;
-  // coupang_url 컬럼이 아직 없는 DB(v1 스키마)면 그 필드만 빼고 재시도
+  // DB에 아직 없는 컬럼(구 스키마)이면 그 필드만 빼고 재시도
   const run = editId
     ? v => sb.from(TABLE).update(v).eq("id", editId)
     : v => sb.from(TABLE).insert(v).select().single();
-  let sent = vals;
-  let { data, error } = await run(sent);
-  if (error && /coupang_url/i.test(error.message||"")){
-    sent = { ...vals }; delete sent.coupang_url;
+  let sent = { ...vals }, missing = [], data, error;
+  for (let i=0; i<4; i++){
     ({ data, error } = await run(sent));
-    if (!error) toast("저장됨 — 쿠팡URL 저장은 supabase_ops_products_v2.sql 실행 후 가능");
+    if (!error) break;
+    const m = (error.message||"").match(/'([a-z_]+)' column/i);
+    if (m && (m[1] in sent)){ delete sent[m[1]]; missing.push(m[1]); } else break;
   }
   btn.disabled = false;
   if (error) return dberr(editId?"수정":"추가", error);
-  if (editId){ Object.assign(DATA.find(p=>p.id===editId), sent); if (sent===vals) toast("수정되었습니다"); }
-  else { DATA.push(data); if (sent===vals) toast("상품이 추가되었습니다"); }
+  if (editId) Object.assign(DATA.find(p=>p.id===editId), sent);
+  else DATA.push(data);
+  toast(missing.length
+    ? `저장됨 — ${missing.join(", ")} 저장은 supabase_ops_products_v3.sql 실행 후 가능`
+    : (editId ? "수정되었습니다" : "상품이 추가되었습니다"));
   closeModal(); render();
 });
 document.getElementById("btnAdd").addEventListener("click", ()=>openModal());
@@ -562,6 +588,38 @@ document.getElementById("ckAll").addEventListener("change", e=>{
   renderTable();
 });
 document.getElementById("bulkFlag").addEventListener("click", e=>openPop([...SEL], e.target));
+// ── 결합 그룹 묶기/해제 ──
+document.getElementById("bulkGroup").addEventListener("click", async ()=>{
+  if (SEL.size < 2){ toast("2개 이상 선택해야 그룹으로 묶을 수 있습니다"); return; }
+  // 다음 그룹 이름: G1, G2, … (기존 최대 번호 +1)
+  let maxN = 0;
+  DATA.forEach(p=>{ const m = String(p.merge_group||"").match(/^G(\d+)$/); if (m) maxN = Math.max(maxN, +m[1]); });
+  const g = "G" + (maxN+1);
+  const ids = [...SEL];
+  // 그룹 지정 + 각 행에 '결합' 작업 플래그 추가 (행마다 기존 플래그가 달라 개별 업데이트)
+  const results = await Promise.all(ids.map(id=>{
+    const p = DATA.find(x=>x.id===id);
+    const fl = [...new Set([...flagsOf(p), "결합"])].join(",");
+    return sb.from(TABLE).update({ merge_group:g, flags:fl }).eq("id", id).then(r=>({id, fl, error:r.error}));
+  }));
+  const bad = results.find(r=>r.error);
+  if (bad){
+    if (/merge_group/i.test(bad.error.message||"")) alert("결합 그룹 저장에는 DB 컬럼이 필요합니다.\nSQL Editor에서 supabase_ops_products_v3.sql 을 실행해 주세요.");
+    else dberr("그룹 묶기", bad.error);
+    return;
+  }
+  results.forEach(r=>{ const p = DATA.find(x=>x.id===r.id); p.merge_group = g; p.flags = r.fl; });
+  SEL.clear(); render(); toast(`${ids.length}개를 ${g} 그룹으로 묶고 '결합' 작업을 지정했습니다`);
+});
+document.getElementById("bulkUngroup").addEventListener("click", async ()=>{
+  if (!SEL.size) return;
+  const ids = [...SEL];
+  const { error } = await sb.from(TABLE).update({ merge_group:null }).in("id", ids);
+  if (error) return dberr("그룹 해제", error);
+  ids.forEach(id=>{ const p = DATA.find(x=>x.id===id); if (p) p.merge_group = null; });
+  SEL.clear(); render(); toast("그룹을 해제했습니다 ('결합' 작업 표시는 유지 — 필요 없으면 🏷 작업에서 해제)");
+});
+
 document.getElementById("bulkDel").addEventListener("click", async ()=>{
   if (!SEL.size) return;
   if (confirm(`선택한 ${SEL.size}개 상품을 삭제할까요?`)){
@@ -601,7 +659,8 @@ document.getElementById("fileImport").addEventListener("change", e=>{
     if (!confirm(`백업 파일의 ${items.length}건을 DB에 추가합니다. (기존 ${DATA.length}건은 그대로 두고 추가만 — 전체 교체가 필요하면 먼저 전체 선택 → 삭제)`)) return;
     const rows = items.map(p=>({ sku:p.sku||null, name:p.name||"(이름 없음)", barcode:p.barcode||null,
       price:num(p.price)||null, supply:num(p.supply)||null, status:p.status||"정상",
-      reviews:num(p.reviews)||null, flags:Array.isArray(p.flags)?p.flags.join(","):String(p.flags||""), note:p.note||null }));
+      reviews:num(p.reviews)||null, flags:Array.isArray(p.flags)?p.flags.join(","):String(p.flags||""), note:p.note||null,
+      coupang_url:p.coupang_url||null, product_id:p.product_id||null, merge_group:p.merge_group||null }));
     for (let i=0; i<rows.length; i+=200){
       const { error } = await sb.from(TABLE).insert(rows.slice(i, i+200));
       if (error) return dberr("복원", error);
