@@ -494,6 +494,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
   <div class="mhd"><div class="mtitle" id="td-title">작업 상세</div><button class="mcls" onclick="cm('task')">✕</button></div>
   <div class="minfo" id="td-info"></div>
   <div class="mbody">
+    <div id="td-review"></div>
     <div class="frow">
       <div class="fg"><label class="flbl">상태</label><select class="fs" id="td-status"><option>진행대기</option><option>진행중</option><option>완료</option><option>보류</option><option>종결</option></select></div>
       <div class="fg"><label class="flbl">발의</label><input class="fi ro" id="td-origin" readonly></div>
@@ -790,6 +791,8 @@ function openTaskDetail(tid){
   document.getElementById("td-title").textContent=(t.task_no||"작업")+" 상세";
   const names=t.target_skus.map(id=>{const s=SKUS.find(x=>x.id===id);return s?esc(s.sku||s.name):"#"+id;}).join(" · ");
   document.getElementById("td-info").innerHTML=`<div class="td-info">${t.types.map(x=>`<span class="tp ${TCLS[x]}">${TICON[x]} ${TLABEL[x]}</span>`).join("")}<span class="origin-b ${t.origin==="COUPANG"?"origin-cp":"origin-in"}">${t.origin==="COUPANG"?"쿠팡 발의":"내부 발의"}</span>${t.decision?`<span class="rv-neg">${esc(t.decision)}</span>`:""}</div><div class="minfo-id">대상 SKU: ${names} · ${t.target_skus.length}개</div>`;
+  const pend=t.origin==="COUPANG"&&!isDone(t)&&(t.decision==="검토대기"||t.decision==="협의중");
+  document.getElementById("td-review").innerHTML=pend?`<div class="review-wrap" style="margin:0 0 6px"><div class="review-hd" style="margin-bottom:4px">🔔 쿠팡 발의 — 검토 결정 필요</div><div class="rv-acts"><button class="rv-yes" onclick="reviewFromDetail('수용')">수용</button><button class="rv-neg-b" onclick="reviewFromDetail('협의중')">협의</button><button class="rv-no" onclick="reviewFromDetail('거절')">거절</button></div></div>`:"";
   document.getElementById("td-status").value=t.status||"진행대기";
   document.getElementById("td-origin").value=t.origin==="COUPANG"?"쿠팡 발의":"내부 발의";
   document.getElementById("td-memo").value=t.memo||"";
@@ -797,6 +800,7 @@ function openTaskDetail(tid){
   document.getElementById("td-logs").innerHTML=logs.length?logs.map(l=>`<li><b>${esc(l.action)}</b>${l.note?" — "+esc(l.note):""}<span class="tl-at">${fmtAt(l.at)} · ${esc(l.actor||"")}</span></li>`).join(""):`<li style="border:none;color:#9CA3AF">이력 없음</li>`;
   openOv("task");
 }
+async function reviewFromDetail(decision){const id=CT;cm("task");await reviewDecide(id,decision);}
 function fmtAt(iso){try{const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}catch(e){return"";}}
 document.getElementById("td-save").addEventListener("click",async()=>{
   const t=TASKS.find(x=>x.id===CT);if(!t)return;
