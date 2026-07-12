@@ -660,7 +660,8 @@ function renderClosed(){
   ct=ct.slice().sort((a,b)=>String(b.completed_at||"").localeCompare(String(a.completed_at||"")));
   document.getElementById("tblMeta").textContent=`${ct.length}건 · 완료/거절/종결`;
   const label=t=>t.decision==="거절"?"거절":t.status;
-  document.getElementById("tbody").innerHTML=ct.length?ct.map(t=>{
+  const back=`<tr class="sec-row"><td colspan="11"><button onclick="exitDone()" style="border:1px solid #C7D2FE;background:#EEF2FF;color:#4F46E5;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;cursor:pointer">← 목록으로 돌아가기</button> &nbsp;🗄 지난 작업 · 완료/거절/종결</td></tr>`;
+  document.getElementById("tbody").innerHTML=back+(ct.length?ct.map(t=>{
     const names=t.target_skus.map(id=>{const s=SKUS.find(x=>x.id===id);return s?esc(s.name):"#"+id;}).join(", ");
     const reason=t.decision_note||t.memo||"";
     return `<tr class="sku-row" style="cursor:pointer" onclick="openTaskDetail(${t.id})">
@@ -672,7 +673,7 @@ function renderClosed(){
       <td colspan="2" style="color:#6B7280">${reason?esc(reason):'<span class="c-pid-na">사유 없음</span>'}</td>
       <td><button class="dtl-btn" onclick="event.stopPropagation();openTaskDetail(${t.id})">이력</button></td>
     </tr>`;
-  }).join(""):`<tr><td colspan="11"><div class="empty"><div class="big">🗄</div>완료·거절·종결된 작업이 없습니다.</div></td></tr>`;
+  }).join(""):`<tr><td colspan="11"><div class="empty"><div class="big">🗄</div>완료·거절·종결된 작업이 없습니다.</div></td></tr>`);
   document.getElementById("bulk").classList.remove("show");SEL.clear();updStats();
 }
 
@@ -917,12 +918,13 @@ document.getElementById("add-save").addEventListener("click",async()=>{
 function togFav(id){FAV.has(id)?FAV.delete(id):FAV.add(id);saveFav();render();}
 function togDtl(id){ODT.has(id)?ODT.delete(id):ODT.add(id);render();}
 function togGrp(g){COLLAPSED.has(g)?COLLAPSED.delete(g):COLLAPSED.add(g);render();}
+function exitDone(){FMODE="all";FT.clear();render();}
 function togSel(id,on){on?SEL.add(id):SEL.delete(id);render();}
 function chkAll(cb){const q=document.getElementById("srch").value.trim().toLowerCase();/* 현재 표시 행 기준 */document.querySelectorAll("#tbody [data-sel]").forEach(el=>{const id=Number(el.dataset.sel);cb.checked?SEL.add(id):SEL.delete(id);});render();}
 document.getElementById("chips").addEventListener("click",e=>{const c=e.target.closest("[data-f]");if(!c)return;const k=c.dataset.f;
   if(k==="all"){FMODE="all";FT.clear();}
   else if(k==="__none"){FMODE="none";FT.clear();}
-  else if(k==="__done"){FMODE="done";FT.clear();}
+  else if(k==="__done"){FMODE=FMODE==="done"?"all":"done";FT.clear();}
   else{FMODE="all";FT.has(k)?FT.delete(k):FT.add(k);}   // 유형 토글(복수=AND)
   render();});
 document.querySelectorAll(".sc[data-stat]").forEach(sc=>sc.addEventListener("click",()=>{const k=sc.dataset.stat;FMODE=FMODE===k?"all":k;FT.clear();render();}));
