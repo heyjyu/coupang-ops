@@ -320,7 +320,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
       <div class="tbl-top-r">
         <span class="tbl-meta" id="tblMeta"></span>
         <select class="sort-sel" id="sortSel" onchange="render()">
-          <option value="recent">최근 갱신순</option>
+          <option value="recent">최근 등록순</option>
           <option value="name">이름순</option>
           <option value="task">작업수순</option>
         </select>
@@ -694,7 +694,7 @@ function render(){
   const sort=document.getElementById("sortSel").value;
   if(sort==="name")rows=rows.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"ko"));
   else if(sort==="task")rows=rows.slice().sort((a,b)=>tagsOf(b.id).length-tagsOf(a.id).length);
-  else rows=rows.slice().sort((a,b)=>String(b.updated_at||"").localeCompare(String(a.updated_at||"")));
+  else rows=rows.slice().sort((a,b)=>b.id-a.id);   // 등록 최신순 (updated_at 컬럼 없음)
 
   document.getElementById("tblMeta").textContent=`${rows.length}건${rows.length!==SKUS.length?` / 전체 ${SKUS.length}`:""}`;
   let html="";
@@ -710,12 +710,12 @@ function render(){
       const mems=gmap[g], collapsed=COLLAPSED.has(g);
       const gtags=[...new Set(mems.flatMap(s=>tagsOf(s.id)))];
       const pills=gtags.map(t=>`<span class="tp ${TCLS[t]}">${TICON[t]}</span>`).join("");
-      html+=`<tr class="grp-row" onclick="togGrp('${esc(g)}')"><td colspan="11" class="grp-cell"><div class="grp-inner">
+      html+=`<tr class="grp-row" data-grp="${esc(g)}"><td colspan="11" class="grp-cell"><div class="grp-inner">
         <span class="grp-toggle ${collapsed?"":"open"}">▶</span><span class="grp-badge">그룹</span>
         <span class="grp-name">${esc(g)}</span>
-        <button class="grp-edit" onclick="event.stopPropagation();openGrp('${esc(g)}')" title="결합 관리">✏️</button>
+        <button class="grp-edit" data-grpmng="${esc(g)}" title="결합 관리">✏️</button>
         <span class="grp-cnt">${mems.length}개 SKU</span><div class="grp-tasks">${pills}</div>
-        <button class="grp-mrg" onclick="event.stopPropagation();openGrp('${esc(g)}')">🔗 결합 관리</button>
+        <button class="grp-mrg" data-grpmng="${esc(g)}">🔗 결합 관리</button>
       </div></td></tr>`;
       if(!collapsed)mems.forEach(s=>html+=skuRow(s,true));
     });
@@ -763,7 +763,13 @@ async function migrateOldFlags(){
   const payload=rows.map(r=>({task_no:`T-${stamp}-${String(seq++).padStart(4,"0")}`,types:r.types,origin:"INTERNAL",status:"진행대기",target_skus:r.targets,created_by:session?.user?.email||null}));
   if(!payload.length)return;
   const {data,error}=await sb.from(T_TABLE).insert(payload).select();
-  if(!error&&data)TASKS=data.map(normTask);
+  if(!error&&data){
+    TASKS=data.map(normTask);
+    // 재이전(작업 전부 삭제 후 새로고침 시 부활) 방지: 이전 끝난 flags 비움
+    const mids=withFlags.map(s=>s.id);
+    await sb.from(P_TABLE).update({flags:""}).in("id",mids);
+    withFlags.forEach(s=>s.flags="");
+  }
 }
 
 /* ── 작업번호 생성 ── */
@@ -901,7 +907,7 @@ document.getElementById("add-save").addEventListener("click",async()=>{
   for(const id of addTargets){
     for(const t of sel){
       const anyOpen=TASKS.find(x=>!isDone(x)&&x.types.includes(t)&&x.target_skus.includes(id));
-      if(!anyOpen){await upsertTask(t,[id],null,memo,{origin,status,decision});added++;}   // 기존 작업은 절대 건드리지 않음 → 내부발의·쿠팡발의 공존
+      if(!anyOpen){const nt=await upsertTask(t,[id],null,memo,{origin,status,decision});if(nt)added++;}   // 기존 작업은 절대 건드리지 않음 → 내부발의·쿠팡발의 공존
     }
   }
   cm("add");render();toast(added?(origin==="COUPANG"?`쿠팡 발의 ${added}건 접수 · 검토 대기`:`작업 ${added}건 배정`):"이미 배정된 작업입니다");
@@ -920,9 +926,26 @@ document.getElementById("chips").addEventListener("click",e=>{const c=e.target.c
   else{FMODE="all";FT.has(k)?FT.delete(k):FT.add(k);}   // 유형 토글(복수=AND)
   render();});
 document.querySelectorAll(".sc[data-stat]").forEach(sc=>sc.addEventListener("click",()=>{const k=sc.dataset.stat;FMODE=FMODE===k?"all":k;FT.clear();render();}));
+// 그룹 헤더: 결합 관리 버튼 / 나머지=접기 (그룹명 특수문자 안전하게 위임 처리)
+document.getElementById("tbody").addEventListener("click",e=>{
+  const mng=e.target.closest("[data-grpmng]");if(mng){e.stopPropagation();openGrp(mng.dataset.grpmng);return;}
+  const gr=e.target.closest(".grp-row");if(gr){togGrp(gr.dataset.grp);}
+});
 
+// 삭제된 SKU를 가리키는 작업 정리: 대상에서 제거, 대상이 비면 작업 삭제
+async function cleanupTasksForSkus(ids){
+  if(!hasTasks)return;
+  const idset=new Set(ids);
+  for(const t of TASKS.filter(t=>t.target_skus.some(x=>idset.has(x)))){
+    const remain=t.target_skus.filter(x=>!idset.has(x));
+    if(remain.length===0)await sb.from(T_TABLE).delete().eq("id",t.id);
+    else{await sb.from(T_TABLE).update({target_skus:remain}).eq("id",t.id);t.target_skus=remain;}
+  }
+  TASKS=TASKS.filter(t=>t.target_skus.length>0);
+}
 async function delSku(id){const s=SKUS.find(x=>x.id===id);if(!confirm(`"${s.name}" 상품을 삭제할까요? (연결된 작업도 함께 정리)`))return;
-  await sb.from(P_TABLE).delete().eq("id",id);
+  const {error}=await sb.from(P_TABLE).delete().eq("id",id);if(error)return dberr("삭제",error);
+  await cleanupTasksForSkus([id]);
   SKUS=SKUS.filter(x=>x.id!==id);SEL.delete(id);FAV.delete(id);saveFav();render();toast("삭제되었습니다","🗑");}
 
 /* ── 그룹 결합 관리 ── */
@@ -953,7 +976,7 @@ document.getElementById("bulkAssign").addEventListener("click",()=>{
   setV("add-memo","");document.getElementById("add-origin").value="INTERNAL";document.getElementById("add-status").value="진행대기";
   openOv("add");
 });
-document.getElementById("bulkDel").addEventListener("click",async()=>{if(!SEL.size)return;if(!confirm(`선택한 ${SEL.size}개를 삭제할까요?`))return;const {error}=await sb.from(P_TABLE).delete().in("id",[...SEL]);if(error)return dberr("삭제",error);SKUS=SKUS.filter(s=>!SEL.has(s.id));[...SEL].forEach(id=>FAV.delete(id));saveFav();SEL.clear();render();toast("삭제되었습니다","🗑");});
+document.getElementById("bulkDel").addEventListener("click",async()=>{if(!SEL.size)return;if(!confirm(`선택한 ${SEL.size}개를 삭제할까요? (연결된 작업도 정리)`))return;const ids=[...SEL];const {error}=await sb.from(P_TABLE).delete().in("id",ids);if(error)return dberr("삭제",error);await cleanupTasksForSkus(ids);SKUS=SKUS.filter(s=>!SEL.has(s.id));ids.forEach(id=>FAV.delete(id));saveFav();SEL.clear();render();toast("삭제되었습니다","🗑");});
 
 /* ── 상품 추가/수정 ── */
 let editPid=null;
@@ -992,7 +1015,9 @@ document.getElementById("btnAdd").addEventListener("click",()=>openProd());
 document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();const b=document.getElementById("lBtn"),er=document.getElementById("lErr");b.disabled=true;er.textContent="";const {error}=await sb.auth.signInWithPassword({email:document.getElementById("lEmail").value.trim(),password:document.getElementById("lPw").value});b.disabled=false;if(error)er.textContent="로그인 실패: "+error.message;});
 document.getElementById("btnLogout").addEventListener("click",()=>sb.auth.signOut());
 async function enter(s){session=s;if(!session){show("login");return;}document.getElementById("who").textContent=session.user?.email||"";favKey="opsFav:"+(session.user?.email||"anon");loadFav();show("app");await loadData();}
-(async function init(){show("loading");const {data}=await sb.auth.getSession();await enter(data&&data.session);sb.auth.onAuthStateChange((_e,s)=>{if((s&&s.access_token)!==(session&&session.access_token))enter(s);});})();
+(async function init(){show("loading");const {data}=await sb.auth.getSession();await enter(data&&data.session);
+  // 로그인/로그아웃(사용자 변경)에만 반응 — 토큰 자동갱신(약 1시간)에는 리로드 안 함
+  sb.auth.onAuthStateChange((_e,s)=>{const uid=s&&s.user&&s.user.id,cur=session&&session.user&&session.user.id;if(uid!==cur)enter(s);});})();
 </script>
 </body>
 </html>
