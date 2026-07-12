@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상품 운영 개념 가이드 — 쵸미앤세븐 · SpaceShield</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',-apple-system,BlinkMacSystemFont,sans-serif;background:#EEF2F7;color:#1A1F36;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 20px 60px;}
+
+  /* 헤더 */
+  .top{background:#0D1B2A;color:#fff;border-radius:16px;padding:26px 30px;margin-bottom:22px;position:relative;overflow:hidden;}
+  .top::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(99,102,241,.35),transparent 70%);}
+  .top .kicker{font-size:11px;font-weight:800;letter-spacing:1.5px;color:#8B9CF9;text-transform:uppercase;margin-bottom:8px;}
+  .top h1{font-size:27px;font-weight:900;letter-spacing:-.8px;margin-bottom:8px;}
+  .top p{font-size:13.5px;color:rgba(255,255,255,.72);max-width:640px;}
+  .top .brand{position:absolute;right:26px;bottom:20px;font-size:11px;color:rgba(255,255,255,.4);font-weight:700;}
+
+  /* 카드 그리드 */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;}
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:13px;padding:17px 19px;position:relative;border-left:4px solid var(--c);}
+  .card .hrow{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex-wrap:wrap;}
+  .card .ico{font-size:19px;line-height:1;}
+  .card .nm{font-size:16px;font-weight:900;letter-spacing:-.3px;}
+  .card .en{font-size:10px;font-weight:800;color:#9CA3AF;letter-spacing:.5px;text-transform:uppercase;}
+  .card .star{font-size:10px;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);padding:2px 8px;border-radius:20px;margin-left:auto;}
+  .card .one{font-size:13.5px;font-weight:800;color:#0D1B2A;margin-bottom:9px;}
+  .card .kv{display:flex;gap:7px;font-size:12px;margin-top:5px;}
+  .card .kv .k{flex:none;width:42px;font-weight:800;color:var(--c);}
+  .card .kv .v{color:#4B5563;}
+
+  /* 결합↔분리 콜아웃 */
+  .callout{background:#fff;border:1.5px solid #A5F3FC;border-radius:13px;padding:18px 20px;margin-top:15px;}
+  .callout .ct{font-size:14px;font-weight:900;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .callout .ct .tag{font-size:10px;font-weight:800;background:#ECFEFF;color:#0891B2;padding:2px 8px;border-radius:20px;}
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .cmp .col{border-radius:10px;padding:13px 15px;}
+  .cmp .mrg{background:#ECFEFF;border:1px solid #A5F3FC;}
+  .cmp .spl{background:#FFFBEB;border:1px solid #FDE68A;}
+  .cmp .col .h{font-size:13px;font-weight:900;margin-bottom:5px;}
+  .cmp .mrg .h{color:#0891B2;}.cmp .spl .h{color:#D97706;}
+  .cmp .col .d{font-size:12.5px;color:#374151;}
+  .cmp .col .d b{font-weight:800;}
+  .judge{margin-top:12px;font-size:12.5px;color:#4B5563;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:9px;padding:10px 13px;}
+  .judge b{color:#0D1B2A;}
+
+  .foot{margin-top:20px;text-align:center;font-size:11px;color:#9CA3AF;line-height:1.7;}
+  .foot .back{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;color:#6366F1;text-decoration:none;border:1.5px solid #C7D2FE;padding:7px 16px;border-radius:8px;}
+  .foot .back:hover{background:#EEF2FF;}
+
+  @media(max-width:720px){.grid,.cmp{grid-template-columns:1fr;}.top h1{font-size:22px;}}
+  @media print{
+    body{background:#fff;}.wrap{padding:0;max-width:none;}
+    .top{background:#0D1B2A!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .card,.callout,.cmp .col{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid;}
+    .foot .back{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="kicker">Product Operations Guide</div>
+    <h1>📖 상품 운영 개념 가이드</h1>
+    <p>쿠팡에서 상품을 운영하며 하게 되는 <b>7가지 작업</b>을 한 장으로 정리했습니다. 각 작업이 <b>무엇을 · 언제 · 왜</b> 하는지 확인하세요.</p>
+    <div class="brand">㈜쵸미앤세븐 · SpaceShield</div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card" style="--c:#64748B">
+      <div class="hrow"><span class="ico">🔧</span><span class="nm">수정</span><span class="en">Fix</span></div>
+      <div class="one">잘못된 정보를 바로잡기</div>
+      <div class="kv"><span class="k">언제</span><span class="v">쿠팡 심사 반려, 상품명 오타, 틀린 바코드·정보</span></div>
+      <div class="kv"><span class="k">포인트</span><span class="v">문제를 원상복구하는 ‘되돌리기’ 작업</span></div>
+    </div>
+
+    <div class="card" style="--c:#2563EB">
+      <div class="hrow"><span class="ico">✨</span><span class="nm">보강</span><span class="en">Enhance</span></div>
+      <div class="one">이미 파는 상품의 콘텐츠를 더 채우기</div>
+      <div class="kv"><span class="k">언제</span><span class="v">대표이미지 부실, 상세페이지 빈약, 검색에 안 걸림, 옵션 부족</span></div>
+      <div class="kv"><span class="k">포인트</span><span class="v">SKU는 그대로 두고 노출·전환율만 끌어올리기</span></div>
+    </div>
+
+    <div class="card" style="--c:#7C3AED">
+      <div class="hrow"><span class="ico">🔄</span><span class="nm">리뉴얼</span><span class="en">Renewal</span></div>
+      <div class="one">상품 페이지를 전면 새단장</div>
+      <div class="kv"><span class="k">언제</span><span class="v">오래된 페이지, 브랜드 개편, 대대적 리프레시</span></div>
+      <div class="kv"><span class="k">포인트</span><span class="v">보강보다 큰 개편. 리뷰 많은 상품은 SKU 유지 권장</span></div>
+    </div>
+
+    <div class="card" style="--c:#0891B2">
+      <div class="hrow"><span class="ico">🔗</span><span class="nm">결합</span><span class="en">Merge</span><span class="star">자주 씀</span></div>
+      <div class="one">흩어진 같은 상품을 한 페이지로 합치기</div>
+      <div class="kv"><span class="k">언제</span><span class="v">내 동일 상품이 쿠팡에 2개 이상 따로 노출될 때</span></div>
+      <div class="kv"><span class="k">왜</span><span class="v">리뷰·판매지표·순위가 한곳에 모여야 상위 노출에 유리 (분리돼 있으면 힘이 쪼개짐)</span></div>
+    </div>
+
+    <div class="card" style="--c:#D97706">
+      <div class="hrow"><span class="ico">✂️</span><span class="nm">분리</span><span class="en">Split</span><span class="star">자주 씀</span></div>
+      <div class="one">잘못 묶인 다른 상품을 떼어내기 <span style="font-weight:700;color:#9CA3AF">(결합의 반대)</span></div>
+      <div class="kv"><span class="k">언제</span><span class="v">색상·규격·브랜드가 다른 상품이 한 페이지에 묶였을 때</span></div>
+      <div class="kv"><span class="k">포인트</span><span class="v">엉뚱하게 섞인 리뷰·옵션을 상품별로 정리</span></div>
+    </div>
+
+    <div class="card" style="--c:#059669">
+      <div class="hrow"><span class="ico">💰</span><span class="nm">가격변경</span><span class="en">Price</span></div>
+      <div class="one">판매가·공급가를 조정하고 마진 관리</div>
+      <div class="kv"><span class="k">언제</span><span class="v">원가 상승, 경쟁사 대응, 쿠팡 딜·프로모션</span></div>
+      <div class="kv"><span class="k">포인트</span><span class="v">여백률 = (판매가 － 공급가) ÷ 판매가</span></div>
+    </div>
+
+    <div class="card" style="--c:#DC2626">
+      <div class="hrow"><span class="ico">🚨</span><span class="nm">신고</span><span class="en">Report</span></div>
+      <div class="one">편승 판매자·위조품을 쿠팡에 신고</div>
+      <div class="kv"><span class="k">언제</span><span class="v">내 상품에 무단 편승, 위조품, 이미지·정보 도용</span></div>
+      <div class="kv"><span class="k">포인트</span><span class="v">부정 셀러 제재 요청</span></div>
+    </div>
+
+    <div class="card" style="--c:#6366F1;display:flex;flex-direction:column;justify-content:center;background:#F5F7FF">
+      <div class="one" style="margin:0 0 6px">🧭 한눈에</div>
+      <div class="kv"><span class="k" style="width:auto">고치기</span><span class="v">수정</span></div>
+      <div class="kv"><span class="k" style="width:auto">채우기</span><span class="v">보강 · 리뉴얼</span></div>
+      <div class="kv"><span class="k" style="width:auto">묶고 풀기</span><span class="v">결합 · 분리</span></div>
+      <div class="kv"><span class="k" style="width:auto">값·방어</span><span class="v">가격변경 · 신고</span></div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    <div class="ct"><span class="tag">헷갈리기 쉬움</span> 결합 ↔ 분리, 이렇게 구분하세요</div>
+    <div class="cmp">
+      <div class="col mrg">
+        <div class="h">🔗 결합</div>
+        <div class="d"><b>같은</b> 상품인데 <b>따로</b> 노출된 걸<br>→ <b>하나로</b> 합치기</div>
+      </div>
+      <div class="col spl">
+        <div class="h">✂️ 분리</div>
+        <div class="d"><b>다른</b> 상품인데 <b>하나로</b> 묶인 걸<br>→ <b>따로</b> 떼어내기</div>
+      </div>
+    </div>
+    <div class="judge">📌 <b>판단 기준</b> — ① 쿠팡 <b>Product ID(노출 ID)</b>가 같은가? &nbsp;② 실제로 <b>같은 상품</b>인가? &nbsp;→ 같은 상품이 나뉘어 있으면 <b>결합</b>, 다른 상품이 묶여 있으면 <b>분리</b>.</div>
+  </div>
+
+  <div class="foot">
+    이 가이드는 ‘쿠팡 상품 운영 관리’ 도구의 작업 유형 설명입니다. · ㈜쵸미앤세븐 · SpaceShield<br>
+    <a class="back" href="index.html">← 운영 관리로 돌아가기</a>
+  </div>
+
+</div>
+</body>
+</html>
