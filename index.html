@@ -210,6 +210,8 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
 .tchk-ico{width:16px;height:16px;border:1.5px solid #D1D5DB;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;background:#fff;color:transparent;}
 .tchk.on .tchk-ico{background:#6366F1;border-color:#6366F1;color:#fff;}
 .tchk-lbl{font-size:11px;font-weight:700;color:#1A1F36;}
+.tchk.locked{opacity:.5;cursor:default;background:#F3F4F6;}
+.tchk.locked .tchk-ico{background:#9CA3AF;border-color:#9CA3AF;color:#fff;}
 
 .gm-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:12px;}
 .gm-row:last-child{border-bottom:none;}
@@ -345,7 +347,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
   <div class="mbody">
     <div class="fg"><label class="flbl">작업 유형 (복수 선택)</label><div class="tchk-grid" id="add-checks"></div></div>
     <div class="frow">
-      <div class="fg"><label class="flbl">발의 주체</label><select class="fs" id="add-origin"><option value="INTERNAL">내부 발의 (대표·직원)</option><option value="COUPANG">쿠팡 발의 (검토 대상)</option></select></div>
+      <div class="fg"><label class="flbl">발의 주체 (새 작업에 적용)</label><select class="fs" id="add-origin"><option value="INTERNAL">내부 발의 (대표·직원)</option><option value="COUPANG">쿠팡 발의 (검토 대상)</option></select></div>
       <div class="fg"><label class="flbl">상태</label><select class="fs" id="add-status"><option>진행대기</option><option>진행중</option><option>보류</option><option>완료</option></select></div>
     </div>
     <div class="fg"><label class="flbl">메모</label><textarea class="fta" id="add-memo" placeholder="배정 이유, 참고 사항..."></textarea></div>
@@ -502,7 +504,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="fg"><label class="flbl">메모</label><textarea class="fta" id="td-memo"></textarea></div>
     <div class="fg"><label class="flbl">이력</label><ul class="tl" id="td-logs"></ul></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('task')">닫기</button><button class="btn-s" style="background:#6366F1" id="td-save">저장</button></div>
+  <div class="mft" style="justify-content:space-between"><span style="display:flex;gap:6px"><button class="btn-c" id="td-done" style="color:#059669">✅ 완료</button><button class="btn-c" id="td-del" style="color:#DC2626">🗑 삭제</button></span><span style="display:flex;gap:7px"><button class="btn-c" onclick="cm('task')">닫기</button><button class="btn-s" style="background:#6366F1" id="td-save">저장</button></span></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="t-ico"></span><span id="t-msg"></span></div>
@@ -524,9 +526,13 @@ const MODAL_OF={수정:"수정",보강:"보강",결합:"결합",분리:"분리",
 const DONE=new Set(["완료","종결"]);
 
 let SKUS=[], TASKS=[], session=null, hasTasks=true;
-let CF="all", CW=null;   // 필터, 현재 작업중 SKU id
-const FAV=new Set((JSON.parse(localStorage.getItem("opsFav")||"[]")).map(Number));
-const saveFav=()=>localStorage.setItem("opsFav",JSON.stringify([...FAV]));
+let CW=null, addTargets=[];      // 현재 작업 대상 SKU id / ＋작업 대상들
+let FMODE="all";                 // 특수 모드: all | none | done | pend | fav
+const FT=new Set();              // 유형 필터(복수 = AND 매칭)
+const FAV=new Set();             // 즐겨찾기(사용자별 localStorage)
+let favKey="opsFav";
+function loadFav(){FAV.clear();try{JSON.parse(localStorage.getItem(favKey)||"[]").map(Number).forEach(x=>FAV.add(x));}catch(e){}}
+const saveFav=()=>localStorage.setItem(favKey,JSON.stringify([...FAV]));
 const ODT=new Set(), COLLAPSED=new Set(), SEL=new Set();
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -560,8 +566,15 @@ function show(v){document.getElementById("loading").classList.toggle("hide",v!==
 
 /* ── 필터 칩 ── */
 function renderChips(){
-  const t=[["all","전체"]].concat(TYPES.map(x=>[x,TICON[x]+" "+TLABEL[x]])).concat([["__none","— 작업없음"]]);
-  document.getElementById("chips").innerHTML=t.map(([k,l])=>`<span class="chip ${CF===k?"act":""}" data-f="${esc(k)}">${l}</span>`).join("");
+  const t=[["all","전체"]].concat(TYPES.map(x=>[x,TICON[x]+" "+TLABEL[x]])).concat([["__none","— 작업없음"],["__done","🗄 지난 작업"]]);
+  document.getElementById("chips").innerHTML=t.map(([k,l])=>{
+    let act;
+    if(k==="all")act=FMODE==="all"&&FT.size===0;
+    else if(k==="__none")act=FMODE==="none";
+    else if(k==="__done")act=FMODE==="done";
+    else act=FMODE==="all"&&FT.has(k);
+    return `<span class="chip ${act?"act":""}" data-f="${esc(k)}">${l}</span>`;
+  }).join("");
 }
 
 /* ── 통계 ── */
@@ -570,8 +583,8 @@ function updStats(){
   document.getElementById("cnt-pend").textContent=SKUS.filter(s=>tagsOf(s.id).length>0).length;
   document.getElementById("cnt-grp").textContent=SKUS.filter(s=>s.merge_group).length;
   document.getElementById("cnt-fav").textContent=SKUS.filter(s=>FAV.has(s.id)).length;
-  document.querySelector('.sc[data-stat="pend"]').classList.toggle("on",CF==="__pend");
-  document.querySelector('.sc[data-stat="fav"]').classList.toggle("on",CF==="__fav");
+  document.querySelector('.sc[data-stat="pend"]').classList.toggle("on",FMODE==="pend");
+  document.querySelector('.sc[data-stat="fav"]').classList.toggle("on",FMODE==="fav");
 }
 
 /* ── 행 ── */
@@ -640,15 +653,42 @@ async function reviewDecide(tid,decision){
   render();toast("검토 결과: "+decision+(decision==="수용"?" (작업으로 전환)":""));
 }
 
+/* ── 지난 작업(완료·거절·종결) 보기 ── */
+function renderClosed(){
+  const q=document.getElementById("srch").value.trim().toLowerCase();
+  let ct=TASKS.filter(isDone).filter(t=>!q||String(t.task_no||"").toLowerCase().includes(q)||t.target_skus.some(id=>{const s=SKUS.find(x=>x.id===id);return s&&(String(s.name).toLowerCase().includes(q)||String(s.sku||"").toLowerCase().includes(q));}));
+  ct=ct.slice().sort((a,b)=>String(b.completed_at||"").localeCompare(String(a.completed_at||"")));
+  document.getElementById("tblMeta").textContent=`${ct.length}건 · 완료/거절/종결`;
+  const label=t=>t.decision==="거절"?"거절":t.status;
+  document.getElementById("tbody").innerHTML=ct.length?ct.map(t=>{
+    const names=t.target_skus.map(id=>{const s=SKUS.find(x=>x.id===id);return s?esc(s.name):"#"+id;}).join(", ");
+    const reason=t.decision_note||t.memo||"";
+    return `<tr class="sku-row" style="cursor:pointer" onclick="openTaskDetail(${t.id})">
+      <td></td><td></td>
+      <td><span class="tno">${esc(t.task_no||"")}</span></td>
+      <td>${t.types.map(x=>`<span class="tp ${TCLS[x]}">${TICON[x]}</span>`).join("")}</td>
+      <td colspan="3"><span class="c-name">${names}</span>${t.origin==="COUPANG"?'<span class="origin-b origin-cp">쿠팡</span>':""}</td>
+      <td><span class="bdg ${label(t)==="거절"?"stop":"ok"}"><span class="bdg-dot"></span>${esc(label(t))}</span></td>
+      <td colspan="2" style="color:#6B7280">${reason?esc(reason):'<span class="c-pid-na">사유 없음</span>'}</td>
+      <td><button class="dtl-btn" onclick="event.stopPropagation();openTaskDetail(${t.id})">이력</button></td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="11"><div class="empty"><div class="big">🗄</div>완료·거절·종결된 작업이 없습니다.</div></td></tr>`;
+  document.getElementById("bulk").classList.remove("show");SEL.clear();updStats();
+}
+
 /* ── 렌더 ── */
 function render(){
   renderChips();renderReview();
+  if(FMODE==="done"){renderClosed();return;}
   const q=document.getElementById("srch").value.trim().toLowerCase();
   let rows=SKUS.filter(s=>{
     const tags=tagsOf(s.id);
     const mq=!q||String(s.sku||"").toLowerCase().includes(q)||String(s.name||"").toLowerCase().includes(q)||String(s.barcode||"").includes(q)||String(s.product_id||"").toLowerCase().includes(q)||taskNosOf(s.id).some(n=>n.toLowerCase().includes(q));
-    let mf=true;
-    if(CF==="all")mf=true; else if(CF==="__none")mf=tags.length===0; else if(CF==="__pend")mf=tags.length>0; else if(CF==="__fav")mf=FAV.has(s.id); else mf=tags.includes(CF);
+    let mf;
+    if(FMODE==="none")mf=tags.length===0;
+    else if(FMODE==="pend")mf=tags.length>0;
+    else if(FMODE==="fav")mf=FAV.has(s.id);
+    else mf=FT.size?[...FT].every(x=>tags.includes(x)):true;   // 유형 복수 선택 = AND 매칭
     return mq&&mf;
   });
   const sort=document.getElementById("sortSel").value;
@@ -759,6 +799,13 @@ async function closeOpenTask(type,skuIds){const t=findOpenTask(type,skuIds);if(!
 
 /* ── 모달 열기 ── */
 function skuInfo(s){return `<div class="minfo-name">${esc(s.name||"")}</div><div class="minfo-id">SKU: ${esc(s.sku||"—")}${s.product_id?" · PID: "+esc(s.product_id):""}</div>`;}
+function renderAddChecks(locked){
+  // locked: 이미 열린 유형 → 잠금(추가만, 해제 불가). 새 유형만 토글해서 추가.
+  document.getElementById("add-checks").innerHTML=TYPES.map(t=>{
+    const l=locked.includes(t);
+    return `<div class="tchk ${l?"locked":""}" data-val="${t}" data-locked="${l?1:0}" onclick="if(this.dataset.locked!=='1')this.classList.toggle('on')"><div class="tchk-ico">✓</div><span class="tchk-lbl">${TICON[t]} ${TLABEL[t]}${l?" · 배정됨":""}</span></div>`;
+  }).join("");
+}
 function selOpt(el){el.closest(".opts").querySelectorAll(".opt").forEach(o=>o.classList.remove("sel"));el.classList.add("sel");}
 function selectedOpt(id){const el=document.querySelector("#"+id+" .opt.sel .opt-t");return el?el.textContent.trim():"";}
 function setV(id,v){const el=document.getElementById(id);if(el)el.value=v;}
@@ -766,9 +813,10 @@ function setV(id,v){const el=document.getElementById(id);if(el)el.value=v;}
 function om(type,id){
   CW=id;const s=SKUS.find(x=>x.id===id);if(!s)return;
   if(type==="add"){
+    addTargets=[id];
     document.getElementById("mi-add").innerHTML=skuInfo(s);
-    const cur=tagsOf(id);
-    document.getElementById("add-checks").innerHTML=TYPES.map(t=>`<div class="tchk ${cur.includes(t)?"on":""}" data-val="${t}" onclick="this.classList.toggle('on')"><div class="tchk-ico">✓</div><span class="tchk-lbl">${TICON[t]} ${TLABEL[t]}</span></div>`).join("");
+    const cur=[...new Set(TASKS.filter(t=>!isDone(t)&&t.target_skus.includes(id)).flatMap(t=>t.types))];   // 이미 열린 유형 = 잠금(배정됨)
+    renderAddChecks(cur);
     setV("add-memo","");document.getElementById("add-origin").value="INTERNAL";document.getElementById("add-status").value="진행대기";
     openOv("add");return;
   }
@@ -794,6 +842,7 @@ function openTaskDetail(tid){
   const pend=t.origin==="COUPANG"&&!isDone(t)&&(t.decision==="검토대기"||t.decision==="협의중");
   document.getElementById("td-review").innerHTML=pend?`<div class="review-wrap" style="margin:0 0 6px"><div class="review-hd" style="margin-bottom:4px">🔔 쿠팡 발의 — 검토 결정 필요</div><div class="rv-acts"><button class="rv-yes" onclick="reviewFromDetail('수용')">수용</button><button class="rv-neg-b" onclick="reviewFromDetail('협의중')">협의</button><button class="rv-no" onclick="reviewFromDetail('거절')">거절</button></div></div>`:"";
   document.getElementById("td-status").value=t.status||"진행대기";
+  document.getElementById("td-done").style.display=isDone(t)?"none":"";
   document.getElementById("td-origin").value=t.origin==="COUPANG"?"쿠팡 발의":"내부 발의";
   document.getElementById("td-memo").value=t.memo||"";
   const logs=(t.logs||[]).slice().reverse();
@@ -802,6 +851,19 @@ function openTaskDetail(tid){
 }
 async function reviewFromDetail(decision){const id=CT;cm("task");await reviewDecide(id,decision);}
 function fmtAt(iso){try{const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}catch(e){return"";}}
+document.getElementById("td-del").addEventListener("click",async()=>{
+  const t=TASKS.find(x=>x.id===CT);if(!t)return;
+  if(!confirm(`작업 ${t.task_no||""}을(를) 삭제할까요? (이력도 함께 삭제 — 완료 처리와 다름)`))return;
+  const {error}=await sb.from(T_TABLE).delete().eq("id",t.id);if(error)return dberr("작업 삭제",error);
+  TASKS=TASKS.filter(x=>x.id!==t.id);cm("task");render();toast("작업을 삭제했습니다","🗑");
+});
+document.getElementById("td-done").addEventListener("click",async()=>{
+  const t=TASKS.find(x=>x.id===CT);if(!t)return;
+  const upd={status:"완료",completed_at:new Date().toISOString()};
+  const {error}=await sb.from(T_TABLE).update(upd).eq("id",t.id);if(error)return dberr("완료 처리",error);
+  const oldSt=t.status;Object.assign(t,upd);await logTask(t,`상태 변경: ${oldSt} → 완료`,"");
+  cm("task");render();toast("완료 처리했습니다 ✅");
+});
 document.getElementById("td-save").addEventListener("click",async()=>{
   const t=TASKS.find(x=>x.id===CT);if(!t)return;
   const st=document.getElementById("td-status").value,memo=document.getElementById("td-memo").value.trim();
@@ -830,17 +892,19 @@ async function saveTask(type){
 
 /* ── 작업 배정(체크박스) 저장 ── */
 document.getElementById("add-save").addEventListener("click",async()=>{
-  const id=CW;if(!id)return;
-  const sel=[...document.querySelectorAll("#add-checks .tchk.on")].map(e=>e.dataset.val);
+  if(!addTargets.length)return;
+  const sel=[...document.querySelectorAll("#add-checks .tchk.on")].map(e=>e.dataset.val);   // 새로 체크한 유형만(잠금=배정됨 제외)
+  if(!sel.length){cm("add");return toast("추가할 작업 유형을 선택하세요");}
   const memo=document.getElementById("add-memo").value.trim(),origin=document.getElementById("add-origin").value,status=document.getElementById("add-status").value;
   const decision=origin==="COUPANG"?"검토대기":null;
-  for(const t of TYPES){
-    const has=findOpenTask(t,[id]);
-    if(sel.includes(t)&&!has)await upsertTask(t,[id],null,memo,{origin,status,decision});
-    else if(!sel.includes(t)&&has){await closeOpenTask(t,[id]);await logTask(has,"작업 해제 ("+t+")","");}
-    else if(sel.includes(t)&&has&&(has.origin!==origin||has.status!==status||memo)){await sb.from(T_TABLE).update({origin,status,decision,memo:memo||has.memo}).eq("id",has.id);Object.assign(has,{origin,status,decision,memo:memo||has.memo});}
+  let added=0;
+  for(const id of addTargets){
+    for(const t of sel){
+      const anyOpen=TASKS.find(x=>!isDone(x)&&x.types.includes(t)&&x.target_skus.includes(id));
+      if(!anyOpen){await upsertTask(t,[id],null,memo,{origin,status,decision});added++;}   // 기존 작업은 절대 건드리지 않음 → 내부발의·쿠팡발의 공존
+    }
   }
-  cm("add");render();toast(origin==="COUPANG"&&sel.length?`쿠팡 발의 접수 · 검토 대기로 등록`:sel.length?`작업 배정: ${sel.map(x=>TLABEL[x]).join(", ")}`:"작업이 모두 해제되었습니다");
+  cm("add");render();toast(added?(origin==="COUPANG"?`쿠팡 발의 ${added}건 접수 · 검토 대기`:`작업 ${added}건 배정`):"이미 배정된 작업입니다");
 });
 
 /* ── 상호작용 ── */
@@ -849,8 +913,13 @@ function togDtl(id){ODT.has(id)?ODT.delete(id):ODT.add(id);render();}
 function togGrp(g){COLLAPSED.has(g)?COLLAPSED.delete(g):COLLAPSED.add(g);render();}
 function togSel(id,on){on?SEL.add(id):SEL.delete(id);render();}
 function chkAll(cb){const q=document.getElementById("srch").value.trim().toLowerCase();/* 현재 표시 행 기준 */document.querySelectorAll("#tbody [data-sel]").forEach(el=>{const id=Number(el.dataset.sel);cb.checked?SEL.add(id):SEL.delete(id);});render();}
-document.getElementById("chips").addEventListener("click",e=>{const c=e.target.closest("[data-f]");if(!c)return;CF=c.dataset.f;render();});
-document.querySelectorAll(".sc[data-stat]").forEach(sc=>sc.addEventListener("click",()=>{const k=sc.dataset.stat==="pend"?"__pend":"__fav";CF=CF===k?"all":k;render();}));
+document.getElementById("chips").addEventListener("click",e=>{const c=e.target.closest("[data-f]");if(!c)return;const k=c.dataset.f;
+  if(k==="all"){FMODE="all";FT.clear();}
+  else if(k==="__none"){FMODE="none";FT.clear();}
+  else if(k==="__done"){FMODE="done";FT.clear();}
+  else{FMODE="all";FT.has(k)?FT.delete(k):FT.add(k);}   // 유형 토글(복수=AND)
+  render();});
+document.querySelectorAll(".sc[data-stat]").forEach(sc=>sc.addEventListener("click",()=>{const k=sc.dataset.stat;FMODE=FMODE===k?"all":k;FT.clear();render();}));
 
 async function delSku(id){const s=SKUS.find(x=>x.id===id);if(!confirm(`"${s.name}" 상품을 삭제할까요? (연결된 작업도 함께 정리)`))return;
   await sb.from(P_TABLE).delete().eq("id",id);
@@ -875,7 +944,15 @@ document.getElementById("bulkMerge").addEventListener("click",async()=>{
   await upsertTask("결합",ids,{그룹:g},"일괄 결합 그룹 지정");
   SEL.clear();render();toast(`${ids.length}개를 '${g}' 그룹으로 묶고 결합 작업을 발급했습니다`);
 });
-document.getElementById("bulkAssign").addEventListener("click",()=>{if(!SEL.size)return;CW=[...SEL][0];/* 단순화: 여러 선택 시 개별 배정은 추후 */if(SEL.size>1){toast("작업 배정은 상품별 ＋작업으로 해주세요(일괄 결합은 지원)","ℹ️");return;}om("add",[...SEL][0]);});
+document.getElementById("bulkAssign").addEventListener("click",()=>{
+  if(!SEL.size)return;
+  if(SEL.size===1){om("add",[...SEL][0]);return;}
+  addTargets=[...SEL];
+  document.getElementById("mi-add").innerHTML=`<div class="minfo-name">선택한 ${addTargets.length}개 SKU에 작업 배정</div><div class="minfo-id">체크한 유형이 각 SKU에 새로 생성됩니다(이미 있는 SKU는 건너뜀).</div>`;
+  renderAddChecks([]);   // 다중이라 잠금 없음
+  setV("add-memo","");document.getElementById("add-origin").value="INTERNAL";document.getElementById("add-status").value="진행대기";
+  openOv("add");
+});
 document.getElementById("bulkDel").addEventListener("click",async()=>{if(!SEL.size)return;if(!confirm(`선택한 ${SEL.size}개를 삭제할까요?`))return;const {error}=await sb.from(P_TABLE).delete().in("id",[...SEL]);if(error)return dberr("삭제",error);SKUS=SKUS.filter(s=>!SEL.has(s.id));[...SEL].forEach(id=>FAV.delete(id));saveFav();SEL.clear();render();toast("삭제되었습니다","🗑");});
 
 /* ── 상품 추가/수정 ── */
@@ -914,7 +991,7 @@ document.getElementById("btnAdd").addEventListener("click",()=>openProd());
 /* ── 로그인 ── */
 document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();const b=document.getElementById("lBtn"),er=document.getElementById("lErr");b.disabled=true;er.textContent="";const {error}=await sb.auth.signInWithPassword({email:document.getElementById("lEmail").value.trim(),password:document.getElementById("lPw").value});b.disabled=false;if(error)er.textContent="로그인 실패: "+error.message;});
 document.getElementById("btnLogout").addEventListener("click",()=>sb.auth.signOut());
-async function enter(s){session=s;if(!session){show("login");return;}document.getElementById("who").textContent=session.user?.email||"";show("app");await loadData();}
+async function enter(s){session=s;if(!session){show("login");return;}document.getElementById("who").textContent=session.user?.email||"";favKey="opsFav:"+(session.user?.email||"anon");loadFav();show("app");await loadData();}
 (async function init(){show("loading");const {data}=await sb.auth.getSession();await enter(data&&data.session);sb.auth.onAuthStateChange((_e,s)=>{if((s&&s.access_token)!==(session&&session.access_token))enter(s);});})();
 </script>
 </body>
