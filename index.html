@@ -218,6 +218,24 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
 .gm-row button:hover{border-color:#EF4444;color:#EF4444;}
 .grp-edit-hint{font-size:11px;color:#9CA3AF;margin-top:8px;line-height:1.6;}
 
+/* 쿠팡 발의 검토 큐 */
+.review-wrap{background:#FFF7ED;border:1px solid #FDBA74;border-radius:10px;padding:12px 15px;margin-bottom:14px;}
+.review-hd{font-size:12.5px;font-weight:800;color:#C2410C;margin-bottom:6px;}
+.review-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #FED7AA;font-size:12px;}
+.rv-types{font-weight:800;color:#0D1B2A;font-size:11px;white-space:nowrap;}
+.rv-name{flex:1;color:#6B7280;min-width:140px;}
+.rv-neg{font-size:10px;font-weight:800;color:#7C3AED;background:#F5F3FF;padding:2px 7px;border-radius:10px;}
+.rv-acts{display:flex;gap:5px;}
+.rv-acts button{border:1.5px solid;font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;cursor:pointer;background:#fff;}
+.rv-yes{color:#059669;border-color:#6EE7B7;}.rv-neg-b{color:#7C3AED;border-color:#C4B5FD;}.rv-no{color:#DC2626;border-color:#FCA5A5;}
+.origin-b{font-size:9px;font-weight:800;padding:1px 6px;border-radius:4px;margin-left:4px;}
+.origin-cp{background:#FFF7ED;color:#C2410C;}.origin-in{background:#F1F5F9;color:#64748B;}
+/* 작업 이력 타임라인 */
+.tl{list-style:none;margin-top:4px;}
+.tl li{padding:5px 0 5px 14px;font-size:11.5px;color:#4B5563;border-left:2px solid #E5E7EB;}
+.tl li b{color:#0D1B2A;}
+.tl .tl-at{color:#9CA3AF;font-size:10px;margin-left:5px;}
+.td-info{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;margin-bottom:4px;}
 .toast{position:fixed;bottom:20px;right:20px;background:#1A1F36;color:#fff;padding:11px 16px;border-radius:10px;font-size:12px;font-weight:600;z-index:9999;transform:translateY(70px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:7px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.22);}
 .toast.show{transform:translateY(0);opacity:1;}
 .empty{text-align:center;padding:50px 20px;color:#9CA3AF;font-size:13px;}
@@ -265,6 +283,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
 <!-- 본문 -->
 <main class="main hide" id="app">
   <div id="setupBox"></div>
+  <div id="reviewBox"></div>
   <div class="sec-lbl">작업 현황</div>
   <div class="stats">
     <div class="sc a"><div class="sc-lbl">전체 SKU</div><div class="sc-num" id="cnt-all">0</div><div class="sc-desc">등록된 전체 SKU 수</div></div>
@@ -470,6 +489,21 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
   <div class="mft"><button class="btn-c" onclick="cm('prod')">취소</button><button class="btn-s" style="background:#6366F1" id="p-save">저장</button></div>
 </div></div>
 
+<!-- 작업 상세 / 이력 -->
+<div class="ov" id="ov-task"><div class="modal" style="width:460px">
+  <div class="mhd"><div class="mtitle" id="td-title">작업 상세</div><button class="mcls" onclick="cm('task')">✕</button></div>
+  <div class="minfo" id="td-info"></div>
+  <div class="mbody">
+    <div class="frow">
+      <div class="fg"><label class="flbl">상태</label><select class="fs" id="td-status"><option>진행대기</option><option>진행중</option><option>완료</option><option>보류</option><option>종결</option></select></div>
+      <div class="fg"><label class="flbl">발의</label><input class="fi ro" id="td-origin" readonly></div>
+    </div>
+    <div class="fg"><label class="flbl">메모</label><textarea class="fta" id="td-memo"></textarea></div>
+    <div class="fg"><label class="flbl">이력</label><ul class="tl" id="td-logs"></ul></div>
+  </div>
+  <div class="mft"><button class="btn-c" onclick="cm('task')">닫기</button><button class="btn-s" style="background:#6366F1" id="td-save">저장</button></div>
+</div></div>
+
 <div class="toast" id="toast"><span id="t-ico"></span><span id="t-msg"></span></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -503,11 +537,22 @@ function toast(msg,ico="✅"){const t=document.getElementById("toast");document.
 function dberr(w,e){console.error(w,e);alert(w+" 실패: "+(e.message||e));}
 
 /* ── 매핑 ── */
-function normTask(r){return{id:r.id,task_no:r.task_no,types:String(r.types||"").split(",").map(s=>s.trim()).filter(Boolean),origin:r.origin,decision:r.decision,status:r.status||"진행대기",target_skus:Array.isArray(r.target_skus)?r.target_skus.map(Number):[],target_product:r.target_product,memo:r.memo,detail:r.detail||{}};}
+function normTask(r){return{id:r.id,task_no:r.task_no,types:String(r.types||"").split(",").map(s=>s.trim()).filter(Boolean),origin:r.origin,decision:r.decision,status:r.status||"진행대기",target_skus:Array.isArray(r.target_skus)?r.target_skus.map(Number):[],target_product:r.target_product,memo:r.memo,detail:r.detail||{},logs:Array.isArray(r.logs)?r.logs:[]};}
 const isDone=t=>DONE.has(t.status);
-const openTasks=id=>TASKS.filter(t=>!isDone(t)&&t.target_skus.includes(id));
+// 쿠팡 발의 검토대기/협의중 작업은 아직 "확정된 일"이 아니라 태그에서 제외 (검토 큐에만 표시)
+const isActive=t=>!isDone(t)&&(t.origin!=="COUPANG"||t.decision==="수용");
+const openTasks=id=>TASKS.filter(t=>isActive(t)&&t.target_skus.includes(id));
 const tagsOf=id=>[...new Set(openTasks(id).flatMap(t=>t.types))].sort((a,b)=>TYPES.indexOf(a)-TYPES.indexOf(b));
 const taskNosOf=id=>[...new Set(openTasks(id).map(t=>t.task_no).filter(Boolean))];
+const pendingReview=()=>TASKS.filter(t=>t.origin==="COUPANG"&&!isDone(t)&&(t.decision==="검토대기"||t.decision==="협의중"));
+let hasLogs=true;
+async function logTask(t,action,note){
+  if(!hasLogs)return;
+  const entry={at:new Date().toISOString(),actor:session?.user?.email||"—",action,note:note||""};
+  t.logs=[...(t.logs||[]),entry];
+  const {error}=await sb.from(T_TABLE).update({logs:t.logs}).eq("id",t.id);
+  if(error&&/logs/i.test(error.message||"")){hasLogs=false;}
+}
 
 /* ── 화면 전환 ── */
 function show(v){document.getElementById("loading").classList.toggle("hide",v!=="loading");document.getElementById("loginWrap").classList.toggle("hide",v!=="login");document.getElementById("app").classList.toggle("hide",v!=="app");document.querySelectorAll(".hd-r .hide,.hd-r .hbtn").forEach(()=>{});["who","btnExport","btnImport","btnAdd","btnLogout"].forEach(id=>document.getElementById(id).classList.toggle("hide",v!=="app"));}
@@ -564,9 +609,39 @@ function skuRow(s,inGrp){
 </td></tr>`;
 }
 
+/* ── 쿠팡 발의 검토 큐 ── */
+function renderReview(){
+  const box=document.getElementById("reviewBox");const pend=pendingReview();
+  if(!pend.length){box.innerHTML="";return;}
+  box.innerHTML=`<div class="review-wrap"><div class="review-hd">🔔 쿠팡 발의 검토 대기 · ${pend.length}건 — 수용 / 협의 / 거절을 결정하세요</div>`+
+    pend.map(t=>{
+      const names=t.target_skus.map(id=>{const s=SKUS.find(x=>x.id===id);return s?esc(s.name):"#"+id;}).join(", ");
+      return `<div class="review-row"><span class="tno">${esc(t.task_no||"")}</span>
+        <span class="rv-types">${t.types.map(x=>TICON[x]+" "+TLABEL[x]).join(" · ")}</span>
+        <span class="rv-name">${names}${t.memo?` — ${esc(t.memo)}`:""}</span>
+        ${t.decision==="협의중"?`<span class="rv-neg">협의중${t.decision_note?": "+esc(t.decision_note):""}</span>`:""}
+        <span class="rv-acts"><button class="rv-yes" onclick="reviewDecide(${t.id},'수용')">수용</button>
+        <button class="rv-neg-b" onclick="reviewDecide(${t.id},'협의중')">협의</button>
+        <button class="rv-no" onclick="reviewDecide(${t.id},'거절')">거절</button></span></div>`;
+    }).join("")+`</div>`;
+}
+async function reviewDecide(tid,decision){
+  const t=TASKS.find(x=>x.id===tid);if(!t)return;
+  let note="";
+  if(decision==="거절"||decision==="협의중"){note=prompt(decision==="거절"?"거절 사유 (쿠팡 BM 커뮤니케이션 근거):":"협의 내용:","")||"";if(decision==="거절"&&!note.trim()){toast("거절 사유는 필수입니다");return;}}
+  const upd={decision,decision_note:note||t.decision_note||null};
+  if(decision==="수용")upd.status="진행대기";
+  if(decision==="거절"){upd.status="종결";upd.completed_at=new Date().toISOString();}
+  const {error}=await sb.from(T_TABLE).update(upd).eq("id",tid);
+  if(error)return dberr("검토 결정",error);
+  Object.assign(t,upd);
+  await logTask(t,"쿠팡 발의 검토 → "+decision,note);
+  render();toast("검토 결과: "+decision+(decision==="수용"?" (작업으로 전환)":""));
+}
+
 /* ── 렌더 ── */
 function render(){
-  renderChips();
+  renderChips();renderReview();
   const q=document.getElementById("srch").value.trim().toLowerCase();
   let rows=SKUS.filter(s=>{
     const tags=tagsOf(s.id);
@@ -674,7 +749,9 @@ async function upsertTask(type,skuIds,detail,memo,extra={}){
     const row={task_no:nextTaskNo(),types:type,origin:"INTERNAL",status:"진행대기",target_skus:skuIds,detail:detail||null,memo:memo||null,created_by:session?.user?.email||null,...extra};
     const {data,error}=await sb.from(T_TABLE).insert(row).select().single();
     if(error){dberr("작업 생성",error);return null;}
-    t=normTask(data);TASKS.push(t);return t;
+    t=normTask(data);TASKS.push(t);
+    await logTask(t,"작업 생성"+(row.origin==="COUPANG"?" (쿠팡 발의·검토대기)":""),memo);
+    return t;
   }
 }
 async function closeOpenTask(type,skuIds){const t=findOpenTask(type,skuIds);if(!t)return;const {error}=await sb.from(T_TABLE).update({status:"종결",completed_at:new Date().toISOString()}).eq("id",t.id);if(!error)t.status="종결";}
@@ -704,7 +781,32 @@ function om(type,id){
   if(type==="신고"){setV("f-rep-type",d.유형||"동일 상품 무단 편승");setV("f-rep-seller",d.판매자||"");setV("f-rep-ch",d.채널||"Vendor Hub 신고센터");setV("f-rep-ev",(t&&t.memo)||"");}
   openOv(type);
 }
-function openByTaskNo(no,id){const t=TASKS.find(x=>x.task_no===no);if(t&&t.types[0]){om(MODAL_OF[t.types[0]]||"add",id);}}
+function openByTaskNo(no,id){const t=TASKS.find(x=>x.task_no===no&&isActive(x)&&x.target_skus.includes(id))||TASKS.find(x=>x.task_no===no);if(t)openTaskDetail(t.id);}
+
+/* ── 작업 상세 / 이력 ── */
+let CT=null;
+function openTaskDetail(tid){
+  const t=TASKS.find(x=>x.id===tid);if(!t)return;CT=tid;
+  document.getElementById("td-title").textContent=(t.task_no||"작업")+" 상세";
+  const names=t.target_skus.map(id=>{const s=SKUS.find(x=>x.id===id);return s?esc(s.sku||s.name):"#"+id;}).join(" · ");
+  document.getElementById("td-info").innerHTML=`<div class="td-info">${t.types.map(x=>`<span class="tp ${TCLS[x]}">${TICON[x]} ${TLABEL[x]}</span>`).join("")}<span class="origin-b ${t.origin==="COUPANG"?"origin-cp":"origin-in"}">${t.origin==="COUPANG"?"쿠팡 발의":"내부 발의"}</span>${t.decision?`<span class="rv-neg">${esc(t.decision)}</span>`:""}</div><div class="minfo-id">대상 SKU: ${names} · ${t.target_skus.length}개</div>`;
+  document.getElementById("td-status").value=t.status||"진행대기";
+  document.getElementById("td-origin").value=t.origin==="COUPANG"?"쿠팡 발의":"내부 발의";
+  document.getElementById("td-memo").value=t.memo||"";
+  const logs=(t.logs||[]).slice().reverse();
+  document.getElementById("td-logs").innerHTML=logs.length?logs.map(l=>`<li><b>${esc(l.action)}</b>${l.note?" — "+esc(l.note):""}<span class="tl-at">${fmtAt(l.at)} · ${esc(l.actor||"")}</span></li>`).join(""):`<li style="border:none;color:#9CA3AF">이력 없음</li>`;
+  openOv("task");
+}
+function fmtAt(iso){try{const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}catch(e){return"";}}
+document.getElementById("td-save").addEventListener("click",async()=>{
+  const t=TASKS.find(x=>x.id===CT);if(!t)return;
+  const st=document.getElementById("td-status").value,memo=document.getElementById("td-memo").value.trim();
+  const upd={status:st,memo:memo||null};if(DONE.has(st)&&!DONE.has(t.status))upd.completed_at=new Date().toISOString();
+  const {error}=await sb.from(T_TABLE).update(upd).eq("id",t.id);if(error)return dberr("저장",error);
+  const changed=st!==t.status;const oldSt=t.status;Object.assign(t,upd);
+  if(changed)await logTask(t,`상태 변경: ${oldSt} → ${st}`,"");
+  cm("task");render();toast("저장되었습니다");
+});
 
 /* ── 작업 저장 (유형별) ── */
 async function saveTask(type){
@@ -727,13 +829,14 @@ document.getElementById("add-save").addEventListener("click",async()=>{
   const id=CW;if(!id)return;
   const sel=[...document.querySelectorAll("#add-checks .tchk.on")].map(e=>e.dataset.val);
   const memo=document.getElementById("add-memo").value.trim(),origin=document.getElementById("add-origin").value,status=document.getElementById("add-status").value;
+  const decision=origin==="COUPANG"?"검토대기":null;
   for(const t of TYPES){
     const has=findOpenTask(t,[id]);
-    if(sel.includes(t)&&!has)await upsertTask(t,[id],null,memo,{origin,status});
-    else if(!sel.includes(t)&&has)await closeOpenTask(t,[id]);
-    else if(sel.includes(t)&&has&&(has.origin!==origin||has.status!==status||memo)){await sb.from(T_TABLE).update({origin,status,memo:memo||has.memo}).eq("id",has.id);Object.assign(has,{origin,status,memo:memo||has.memo});}
+    if(sel.includes(t)&&!has)await upsertTask(t,[id],null,memo,{origin,status,decision});
+    else if(!sel.includes(t)&&has){await closeOpenTask(t,[id]);await logTask(has,"작업 해제 ("+t+")","");}
+    else if(sel.includes(t)&&has&&(has.origin!==origin||has.status!==status||memo)){await sb.from(T_TABLE).update({origin,status,decision,memo:memo||has.memo}).eq("id",has.id);Object.assign(has,{origin,status,decision,memo:memo||has.memo});}
   }
-  cm("add");render();toast(sel.length?`작업 배정: ${sel.map(x=>TLABEL[x]).join(", ")}`:"작업이 모두 해제되었습니다");
+  cm("add");render();toast(origin==="COUPANG"&&sel.length?`쿠팡 발의 접수 · 검토 대기로 등록`:sel.length?`작업 배정: ${sel.map(x=>TLABEL[x]).join(", ")}`:"작업이 모두 해제되었습니다");
 });
 
 /* ── 상호작용 ── */
