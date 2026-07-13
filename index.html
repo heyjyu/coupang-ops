@@ -240,6 +240,11 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
 .td-info{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;margin-bottom:4px;}
 .toast{position:fixed;bottom:20px;right:20px;background:#1A1F36;color:#fff;padding:11px 16px;border-radius:10px;font-size:12px;font-weight:600;z-index:9999;transform:translateY(70px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:7px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.22);}
 .toast.show{transform:translateY(0);opacity:1;}
+.sk{display:inline-block;height:12px;width:72%;border-radius:4px;background:linear-gradient(90deg,#eef0f3 25%,#f7f8fa 50%,#eef0f3 75%);background-size:200% 100%;animation:sk 1.15s ease-in-out infinite;}
+.sk.s2{width:45%;}.sk.s3{width:88%;}
+.sk-row td{padding:13px 10px;}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.refreshing{font-size:10px;color:#9CA3AF;}
 .empty{text-align:center;padding:50px 20px;color:#9CA3AF;font-size:13px;}
 .empty .big{font-size:40px;margin-bottom:10px;}
 #loading{padding:60px;text-align:center;color:#9CA3AF;}
@@ -727,24 +732,42 @@ function render(){
   document.getElementById("bulk").classList.toggle("show",SEL.size>0);
   document.getElementById("bulkN").textContent=`${SEL.size}개 선택`;
   updStats();
+  if(SKUS.length)writeCache();   // 변경분을 캐시에도 반영(다음 방문 즉시 렌더 최신 유지)
 }
 
-/* ── 로드 ── */
+/* ── 로드 (캐시 즉시 렌더 → 병렬 재검증) ── */
+let cacheKey="opsCache";
+function readCache(){try{return JSON.parse(localStorage.getItem(cacheKey)||"null");}catch(e){return null;}}
+function writeCache(){try{localStorage.setItem(cacheKey,JSON.stringify({products:SKUS,tasks:TASKS,at:Date.now()}));}catch(e){}}
+function clearCache(){try{localStorage.removeItem(cacheKey);}catch(e){}}
+function showSkeleton(){
+  document.getElementById("tblMeta").innerHTML='<span class="refreshing">불러오는 중…</span>';
+  let rows="";
+  for(let i=0;i<6;i++)rows+=`<tr class="sk-row"><td></td><td><span class="sk s2"></span></td><td><span class="sk s2"></span></td><td><span class="sk s2"></span></td><td><span class="sk s2"></span></td><td><span class="sk s2"></span></td><td><span class="sk s3"></span></td><td><span class="sk s2"></span></td><td><span class="sk"></span></td><td><span class="sk s2"></span></td><td><span class="sk s2"></span></td></tr>`;
+  document.getElementById("tbody").innerHTML=rows;
+}
 async function loadData(){
   const box=document.getElementById("setupBox");box.innerHTML="";
-  const pr=await sb.from(P_TABLE).select("*").order("id");
+  const cached=readCache();
+  if(cached&&Array.isArray(cached.products)&&cached.products.length){
+    SKUS=cached.products;TASKS=(cached.tasks||[]).map(normTask);render();
+    document.getElementById("tblMeta").innerHTML+=' <span class="refreshing">· 갱신 중</span>';   // 즉시 렌더 + 백그라운드 갱신
+  }else showSkeleton();
+  const [pr,tr]=await Promise.all([                                   // 상품·작업 병렬 조회
+    sb.from(P_TABLE).select("*").order("id"),
+    sb.from(T_TABLE).select("*").order("id")
+  ]);
   if(pr.error){
     if(/does not exist|schema cache/i.test(pr.error.message||""))box.innerHTML=`<div class="setup">⚠️ <b>ops_products 테이블이 없습니다.</b> SQL Editor에서 <code>supabase_ops_products.sql</code> 실행 후 새로고침.</div>`;
     else box.innerHTML=`<div class="setup">⚠️ 불러오기 실패: ${esc(pr.error.message)}</div>`;
-    SKUS=[];render();return;
+    if(!cached){SKUS=[];render();}return;                             // 갱신 실패 시 캐시 유지
   }
   SKUS=(pr.data||[]).map(r=>({...r}));
-  const tr=await sb.from(T_TABLE).select("*").order("id");
   if(tr.error){
     hasTasks=false;TASKS=[];
     if(/does not exist|schema cache/i.test(tr.error.message||""))box.innerHTML=`<div class="setup">⚠️ <b>작업(ops_tasks) 테이블이 아직 없습니다.</b> SQL Editor에서 <code>supabase_ops_tasks.sql</code> (<a href="https://github.com/heyjyu/coupang-ops/blob/main/supabase_ops_tasks.sql" target="_blank">파일</a>) 실행 후 새로고침하면 작업 배정이 저장됩니다.</div>`;
   }else{hasTasks=true;TASKS=(tr.data||[]).map(normTask);await migrateOldFlags();}
-  render();
+  writeCache();render();
 }
 /* 기존 flags(구버전) → 작업으로 1회 이전 (tasks 비어있고 flags 있을 때만) */
 async function migrateOldFlags(){
@@ -1015,8 +1038,8 @@ document.getElementById("btnAdd").addEventListener("click",()=>openProd());
 
 /* ── 로그인 ── */
 document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();const b=document.getElementById("lBtn"),er=document.getElementById("lErr");b.disabled=true;er.textContent="";const {error}=await sb.auth.signInWithPassword({email:document.getElementById("lEmail").value.trim(),password:document.getElementById("lPw").value});b.disabled=false;if(error)er.textContent="로그인 실패: "+error.message;});
-document.getElementById("btnLogout").addEventListener("click",()=>sb.auth.signOut());
-async function enter(s){session=s;if(!session){show("login");return;}document.getElementById("who").textContent=session.user?.email||"";favKey="opsFav:"+(session.user?.email||"anon");loadFav();show("app");await loadData();}
+document.getElementById("btnLogout").addEventListener("click",()=>{clearCache();sb.auth.signOut();});
+async function enter(s){session=s;if(!session){show("login");return;}document.getElementById("who").textContent=session.user?.email||"";favKey="opsFav:"+(session.user?.email||"anon");cacheKey="opsCache:"+(session.user?.email||"anon");loadFav();show("app");await loadData();}
 (async function init(){show("loading");const {data}=await sb.auth.getSession();await enter(data&&data.session);
   // 로그인/로그아웃(사용자 변경)에만 반응 — 토큰 자동갱신(약 1시간)에는 리로드 안 함
   sb.auth.onAuthStateChange((_e,s)=>{const uid=s&&s.user&&s.user.id,cur=session&&session.user&&session.user.id;if(uid!==cur)enter(s);});})();
