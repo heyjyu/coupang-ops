@@ -347,7 +347,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
 
 <!-- 작업 배정 (다중 유형 체크) -->
 <div class="ov" id="ov-add"><div class="modal">
-  <div class="mhd"><div class="mtitle">🏷 작업 배정 <span class="mtag" style="background:#EEF2FF;color:#4F46E5">다중 태그</span></div><button class="mcls" onclick="cm('add')">✕</button></div>
+  <div class="mhd"><div class="mtitle">🏷 작업 배정 <span class="mtag" style="background:#EEF2FF;color:#4F46E5">다중 태그</span></div><button class="mcls" onclick="askClose('add')">✕</button></div>
   <div class="minfo" id="mi-add"></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">작업 유형 (복수 선택)</label><div class="tchk-grid" id="add-checks"></div></div>
@@ -357,12 +357,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     </div>
     <div class="fg"><label class="flbl">메모</label><textarea class="fta" id="add-memo" placeholder="배정 이유, 참고 사항..."></textarea></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('add')">취소</button><button class="btn-s" style="background:#6366F1" id="add-save">작업 배정 저장</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('add')">취소</button><button class="btn-s" style="background:#6366F1" id="add-save">작업 배정 저장</button></div>
 </div></div>
 
 <!-- 수정 -->
 <div class="ov" id="ov-수정"><div class="modal">
-  <div class="mhd"><div class="mtitle">🔧 상품 수정 <span class="mtag" style="background:#F3F4F6;color:#6B7280">수정</span></div><button class="mcls" onclick="cm('수정')">✕</button></div>
+  <div class="mhd"><div class="mtitle">🔧 상품 수정 <span class="mtag" style="background:#F3F4F6;color:#6B7280">수정</span></div><button class="mcls" onclick="askClose('수정')">✕</button></div>
   <div class="minfo" id="mi-수정"></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">SKU ID</label><input class="fi ro" id="f-mod-id" readonly></div>
@@ -370,12 +370,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="fg"><label class="flbl">바코드</label><input class="fi" id="f-mod-bc"></div>
     <div class="fg"><label class="flbl">쿠팡 반려 사유 / 수정 내용</label><textarea class="fta" id="f-mod-memo" placeholder="수정 사항 및 대응 방향..."></textarea></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('수정')">취소</button><button class="btn-s" style="background:#2563EB" onclick="saveTask('수정')">수정 저장</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('수정')">취소</button><button class="btn-s" style="background:#2563EB" onclick="saveTask('수정')">수정 저장</button></div>
 </div></div>
 
 <!-- 보강·리뉴얼 -->
 <div class="ov" id="ov-보강"><div class="modal">
-  <div class="mhd"><div class="mtitle">✨ 보강 · 리뉴얼 <span class="mtag" style="background:#EFF6FF;color:#2563EB">보강</span></div><button class="mcls" onclick="cm('보강')">✕</button></div>
+  <div class="mhd"><div class="mtitle">✨ 보강 · 리뉴얼 <span class="mtag" style="background:#EFF6FF;color:#2563EB">보강</span></div><button class="mcls" onclick="askClose('보강')">✕</button></div>
   <div class="minfo" id="mi-보강"></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">대상 요소</label>
@@ -394,12 +394,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     </div>
     <div class="fg"><label class="flbl">방향 메모 (현재 a → b 식)</label><textarea class="fta" id="enh-memo" placeholder="예: 노출명 '실리콘밴드' → '스포츠 실리콘 스트랩', 레퍼런스 URL..."></textarea></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('보강')">취소</button><button class="btn-s" style="background:#2563EB" onclick="saveTask('보강')">보강·리뉴얼 등록</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('보강')">취소</button><button class="btn-s" style="background:#2563EB" onclick="saveTask('보강')">보강·리뉴얼 등록</button></div>
 </div></div>
 
 <!-- 결합 -->
 <div class="ov" id="ov-결합"><div class="modal">
-  <div class="mhd"><div class="mtitle">🔗 결합 요청 <span class="mtag" style="background:#ECFEFF;color:#0891B2">결합</span></div><button class="mcls" onclick="cm('결합')">✕</button></div>
+  <div class="mhd"><div class="mtitle">🔗 결합 요청 <span class="mtag" style="background:#ECFEFF;color:#0891B2">결합</span></div><button class="mcls" onclick="askClose('결합')">✕</button></div>
   <div class="minfo" id="mi-결합"></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">대상 SKU (이 작업으로 묶임)</label><input class="fi ro" id="f-mrg-base" readonly></div>
@@ -407,12 +407,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="fg"><label class="flbl">요청 채널</label><select class="fs" id="f-mrg-ch"><option>Vendor Hub 1:1 문의</option><option>seller@coupang.com</option><option>MD 직접 연락</option></select></div>
     <div class="fg"><label class="flbl">결합 근거</label><textarea class="fta" id="f-mrg-ev" placeholder="동일 상품 증빙 (리뷰 수, 바코드, 제조사)..."></textarea></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('결합')">취소</button><button class="btn-s" style="background:#0891B2" onclick="saveTask('결합')">결합 요청 저장</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('결합')">취소</button><button class="btn-s" style="background:#0891B2" onclick="saveTask('결합')">결합 요청 저장</button></div>
 </div></div>
 
 <!-- 분리 -->
 <div class="ov" id="ov-분리"><div class="modal">
-  <div class="mhd"><div class="mtitle">✂️ 상품 분리 <span class="mtag" style="background:#FFFBEB;color:#D97706">분리</span></div><button class="mcls" onclick="cm('분리')">✕</button></div>
+  <div class="mhd"><div class="mtitle">✂️ 상품 분리 <span class="mtag" style="background:#FFFBEB;color:#D97706">분리</span></div><button class="mcls" onclick="askClose('분리')">✕</button></div>
   <div class="minfo" id="mi-분리"></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">현재 SKU</label><input class="fi ro" id="f-spl-base" readonly></div>
@@ -420,12 +420,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="fg"><label class="flbl">분리 후 신규 SKU명</label><input class="fi" id="f-spl-new" placeholder="분리될 상품의 올바른 이름..."></div>
     <div class="fg"><label class="flbl">분리 요청 근거</label><textarea class="fta" id="f-spl-ev" placeholder="다른 상품임을 증명하는 근거..."></textarea></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('분리')">취소</button><button class="btn-s" style="background:#D97706" onclick="saveTask('분리')">분리 요청 저장</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('분리')">취소</button><button class="btn-s" style="background:#D97706" onclick="saveTask('분리')">분리 요청 저장</button></div>
 </div></div>
 
 <!-- 가격변경 -->
 <div class="ov" id="ov-가격"><div class="modal">
-  <div class="mhd"><div class="mtitle">💰 가격 변경 <span class="mtag" style="background:#ECFDF5;color:#059669">가격변경</span></div><button class="mcls" onclick="cm('가격')">✕</button></div>
+  <div class="mhd"><div class="mtitle">💰 가격 변경 <span class="mtag" style="background:#ECFDF5;color:#059669">가격변경</span></div><button class="mcls" onclick="askClose('가격')">✕</button></div>
   <div class="minfo" id="mi-가격"></div>
   <div class="mbody">
     <div class="frow">
@@ -439,12 +439,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="mbox" id="mbox"><span class="mbox-lbl">예상 여백률</span><span class="mbox-val" id="mbox-val">—</span></div>
     <div class="fg"><label class="flbl">변경 사유</label><select class="fs" id="f-prc-reason"><option>원가 상승 반영</option><option>경쟁사 대응</option><option>쿠팡 딜/프로모션</option><option>마진 최적화</option><option>기타</option></select></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('가격')">취소</button><button class="btn-s" style="background:#059669" onclick="saveTask('가격변경')">가격 변경 저장</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('가격')">취소</button><button class="btn-s" style="background:#059669" onclick="saveTask('가격변경')">가격 변경 저장</button></div>
 </div></div>
 
 <!-- 신고 -->
 <div class="ov" id="ov-신고"><div class="modal">
-  <div class="mhd"><div class="mtitle">🚨 판매자 신고 <span class="mtag" style="background:#FEF2F2;color:#DC2626">신고</span></div><button class="mcls" onclick="cm('신고')">✕</button></div>
+  <div class="mhd"><div class="mtitle">🚨 판매자 신고 <span class="mtag" style="background:#FEF2F2;color:#DC2626">신고</span></div><button class="mcls" onclick="askClose('신고')">✕</button></div>
   <div class="minfo" id="mi-신고"></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">신고 유형</label><select class="fs" id="f-rep-type"><option>동일 상품 무단 편승</option><option>위조품 판매</option><option>가격 덤핑</option><option>정보/이미지 도용</option><option>기타</option></select></div>
@@ -452,25 +452,25 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="fg"><label class="flbl">신고 채널</label><select class="fs" id="f-rep-ch"><option>Vendor Hub 신고센터</option><option>판매자 고객센터 1:1</option><option>MD 직접 연락</option></select></div>
     <div class="fg"><label class="flbl">증빙 내용</label><textarea class="fta" id="f-rep-ev" placeholder="스크린샷 위치, 신고 근거..."></textarea></div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('신고')">취소</button><button class="btn-s" style="background:#DC2626" onclick="saveTask('신고')">신고 등록</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('신고')">취소</button><button class="btn-s" style="background:#DC2626" onclick="saveTask('신고')">신고 등록</button></div>
 </div></div>
 
 <!-- 그룹 결합 관리 -->
 <div class="ov" id="ov-grp"><div class="modal" style="width:440px">
-  <div class="mhd"><div class="mtitle">🔗 결합 관리 <span class="mtag" style="background:#DBEAFE;color:#1D4ED8">그룹</span></div><button class="mcls" onclick="cm('grp')">✕</button></div>
+  <div class="mhd"><div class="mtitle">🔗 결합 관리 <span class="mtag" style="background:#DBEAFE;color:#1D4ED8">그룹</span></div><button class="mcls" onclick="askClose('grp')">✕</button></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">그룹명 (내부 분류)</label><input class="fi" id="grp-name"><div class="grp-edit-hint">💡 상품명과 달라도 됩니다. 결합 기준 분류명으로 자유롭게.</div></div>
     <div class="fg"><label class="flbl">구성 SKU</label><div id="grp-members"></div></div>
   </div>
   <div class="mft" style="justify-content:space-between">
     <button class="btn-c" style="color:#DC2626" id="grp-ungroup">그룹 전체 해제</button>
-    <span style="display:flex;gap:7px"><button class="btn-c" onclick="cm('grp')">닫기</button><button class="btn-s" style="background:#6366F1" id="grp-save">저장</button></span>
+    <span style="display:flex;gap:7px"><button class="btn-c" onclick="askClose('grp')">닫기</button><button class="btn-s" style="background:#6366F1" id="grp-save">저장</button></span>
   </div>
 </div></div>
 
 <!-- 상품 추가/수정 -->
 <div class="ov" id="ov-prod"><div class="modal">
-  <div class="mhd"><div class="mtitle" id="prod-title">➕ 상품 추가</div><button class="mcls" onclick="cm('prod')">✕</button></div>
+  <div class="mhd"><div class="mtitle" id="prod-title">➕ 상품 추가</div><button class="mcls" onclick="askClose('prod')">✕</button></div>
   <div class="mbody">
     <div class="fg"><label class="flbl">📋 쿠팡에서 복사한 것 붙여넣기 (자동 입력)</label>
       <textarea class="fta" id="p-paste" style="min-height:44px" placeholder="쿠팡 상품 페이지 ⌘A→⌘C(전체복사) 또는 주소(URL) 붙여넣기"></textarea>
@@ -493,12 +493,12 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
       <div class="fg"><label class="flbl">결합 그룹</label><input class="fi" id="p-grp" placeholder="같은 값끼리 묶임 (선택)"></div>
     </div>
   </div>
-  <div class="mft"><button class="btn-c" onclick="cm('prod')">취소</button><button class="btn-s" style="background:#6366F1" id="p-save">저장</button></div>
+  <div class="mft"><button class="btn-c" onclick="askClose('prod')">취소</button><button class="btn-s" style="background:#6366F1" id="p-save">저장</button></div>
 </div></div>
 
 <!-- 작업 상세 / 이력 -->
 <div class="ov" id="ov-task"><div class="modal" style="width:460px">
-  <div class="mhd"><div class="mtitle" id="td-title">작업 상세</div><button class="mcls" onclick="cm('task')">✕</button></div>
+  <div class="mhd"><div class="mtitle" id="td-title">작업 상세</div><button class="mcls" onclick="askClose('task')">✕</button></div>
   <div class="minfo" id="td-info"></div>
   <div class="mbody">
     <div id="td-review"></div>
@@ -509,7 +509,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
     <div class="fg"><label class="flbl">메모</label><textarea class="fta" id="td-memo"></textarea></div>
     <div class="fg"><label class="flbl">이력</label><ul class="tl" id="td-logs"></ul></div>
   </div>
-  <div class="mft" style="justify-content:space-between"><span style="display:flex;gap:6px"><button class="btn-c" id="td-done" style="color:#059669">✅ 완료</button><button class="btn-c" id="td-del" style="color:#DC2626">🗑 삭제</button></span><span style="display:flex;gap:7px"><button class="btn-c" onclick="cm('task')">닫기</button><button class="btn-s" style="background:#6366F1" id="td-save">저장</button></span></div>
+  <div class="mft" style="justify-content:space-between"><span style="display:flex;gap:6px"><button class="btn-c" id="td-done" style="color:#059669">✅ 완료</button><button class="btn-c" id="td-del" style="color:#DC2626">🗑 삭제</button></span><span style="display:flex;gap:7px"><button class="btn-c" onclick="askClose('task')">닫기</button><button class="btn-s" style="background:#6366F1" id="td-save">저장</button></span></div>
 </div></div>
 
 <div class="toast" id="toast"><span id="t-ico"></span><span id="t-msg"></span></div>
@@ -1029,11 +1029,17 @@ document.getElementById("fileImport").addEventListener("change",e=>{const f=e.ta
 /* ── 여백률 미리보기 ── */
 function calcMgn(){const s=num(document.getElementById("new-sell").value),u=num(document.getElementById("new-sup").value),box=document.getElementById("mbox"),val=document.getElementById("mbox-val");if(!s){val.textContent="—";box.className="mbox";return;}const m=((s-u)/s*100).toFixed(1);val.textContent=m+"%";box.className=parseFloat(m)<30?"mbox bad":"mbox";}
 
-/* ── 모달 공통 ── */
-function openOv(t){document.getElementById("ov-"+t).classList.add("open");}
-function cm(t){document.getElementById("ov-"+t).classList.remove("open");}
-document.querySelectorAll(".ov").forEach(ov=>ov.addEventListener("click",e=>{if(e.target===ov)cm(ov.id.replace("ov-",""));}));
-document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".ov.open").forEach(ov=>cm(ov.id.replace("ov-","")));});
+/* ── 모달 공통 (저장 안 된 입력 경고) ── */
+let dirty=false;   // 열린 모달에서 사용자가 편집했는지
+function openOv(t){dirty=false;document.getElementById("ov-"+t).classList.add("open");}   // 열 때 초기화 (프로그램적 setV는 이벤트 미발생)
+function cm(t){document.getElementById("ov-"+t).classList.remove("open");dirty=false;}     // 저장/닫기 확정 = 초기화
+function askClose(t){if(dirty&&!confirm("저장하지 않은 변경사항이 있습니다.\n저장하지 않고 닫으시겠어요?"))return;cm(t);}
+// 사용자 편집 감지 (native 입력/선택/붙여넣기 + 커스텀 위젯 .opt/.tchk)
+["input","change","paste"].forEach(ev=>document.addEventListener(ev,e=>{if(e.target.closest(".ov.open"))dirty=true;}));
+document.addEventListener("click",e=>{if(e.target.closest(".ov.open")&&e.target.closest(".opt,.tchk"))dirty=true;});
+document.querySelectorAll(".ov").forEach(ov=>ov.addEventListener("click",e=>{if(e.target===ov)askClose(ov.id.replace("ov-",""));}));   // 바깥(배경) 클릭
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".ov.open").forEach(ov=>askClose(ov.id.replace("ov-","")));});   // Esc
+window.addEventListener("beforeunload",e=>{if(dirty&&document.querySelector(".ov.open")){e.preventDefault();e.returnValue="";}});   // 탭 닫기/새로고침
 document.getElementById("btnAdd").addEventListener("click",()=>openProd());
 
 /* ── 로그인 ── */
