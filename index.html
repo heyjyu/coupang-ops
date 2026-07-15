@@ -514,7 +514,7 @@ tbody tr.sku-row:hover{background:#FAFBFF;}
 
 <div class="toast" id="toast"><span id="t-ico"></span><span id="t-msg"></span></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.5"></script>
 <script>
 "use strict";
 const SUPA_URL="https://tnuzqrqxptxrfozzjjek.supabase.co";
@@ -549,7 +549,7 @@ function toast(msg,ico="✅"){const t=document.getElementById("toast");document.
 function dberr(w,e){console.error(w,e);alert(w+" 실패: "+(e.message||e));}
 
 /* ── 매핑 ── */
-function normTask(r){return{id:r.id,task_no:r.task_no,types:String(r.types||"").split(",").map(s=>s.trim()).filter(Boolean),origin:r.origin,decision:r.decision,status:r.status||"진행대기",target_skus:Array.isArray(r.target_skus)?r.target_skus.map(Number):[],target_product:r.target_product,memo:r.memo,detail:r.detail||{},logs:Array.isArray(r.logs)?r.logs:[]};}
+function normTask(r){return{id:r.id,task_no:r.task_no,types:String(r.types||"").split(",").map(s=>s.trim()).filter(Boolean),origin:r.origin,decision:r.decision,decision_note:r.decision_note,status:r.status||"진행대기",target_skus:Array.isArray(r.target_skus)?r.target_skus.map(Number):[],target_product:r.target_product,memo:r.memo,detail:r.detail||{},completed_at:r.completed_at,created_by:r.created_by,logs:Array.isArray(r.logs)?r.logs:[]};}
 const isDone=t=>DONE.has(t.status);
 // 쿠팡 발의 검토대기/협의중 작업은 아직 "확정된 일"이 아니라 태그에서 제외 (검토 큐에만 표시)
 const isActive=t=>!isDone(t)&&(t.origin!=="COUPANG"||t.decision==="수용");
