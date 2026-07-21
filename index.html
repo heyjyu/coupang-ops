@@ -765,7 +765,7 @@ async function loadData(){
   SKUS=(pr.data||[]).map(r=>({...r}));
   if(tr.error){
     hasTasks=false;TASKS=[];
-    if(/does not exist|schema cache/i.test(tr.error.message||""))box.innerHTML=`<div class="setup">⚠️ <b>작업(ops_tasks) 테이블이 아직 없습니다.</b> SQL Editor에서 <code>supabase_ops_tasks.sql</code> (<a href="https://github.com/heyjyu/coupang-ops/blob/main/supabase_ops_tasks.sql" target="_blank">파일</a>) 실행 후 새로고침하면 작업 배정이 저장됩니다.</div>`;
+    if(/does not exist|schema cache/i.test(tr.error.message||""))box.innerHTML=`<div class="setup">⚠️ <b>작업(ops_tasks) 테이블이 아직 없습니다.</b> SQL Editor에서 <code>supabase_ops_tasks.sql</code> (<a href="https://github.com/demian247/coupang-ops/blob/main/supabase_ops_tasks.sql" target="_blank">파일</a>) 실행 후 새로고침하면 작업 배정이 저장됩니다.</div>`;
   }else{hasTasks=true;TASKS=(tr.data||[]).map(normTask);await migrateOldFlags();}
   writeCache();render();
 }
