@@ -3,7 +3,7 @@
 ㈜쵸미앤세븐 · SPACE SHIELD 내부 도구. 쿠팡 SKU별로 **"뭘 손봐야 하는지(작업)"** 를 기록·추적합니다.
 상품을 등록하거나 리스팅을 고치는 도구가 아니라, **작업 대장**입니다.
 
-**라이브:** https://heyjyu.github.io/coupang-ops/ · **개념 설명:** [guide.html](https://heyjyu.github.io/coupang-ops/guide.html)
+**라이브:** https://demian247.github.io/coupang-ops/ · **개념 설명:** [guide.html](https://demian247.github.io/coupang-ops/guide.html)
 
 ## 쓰는 법
 
